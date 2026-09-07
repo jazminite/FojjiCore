@@ -1,0 +1,22 @@
+## Interface: 40402
+## Title: FojjiCore
+## RequiredDeps: WeakAuras
+## Version: 2.0.2
+## X-Wago-ID: XKq9B5Ky
+## IconTexture: Interface\AddOns\FojjiCore\textures\FojjiIcons\F_icon_lightblue.png
+## SavedVariables: FojjiCoreDB
+
+# Libs
+libs\LibStub\LibStub.lua
+libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
+libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
+libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
+
+# Core files
+Media.lua
+Range.lua
+Scripts.lua
+Sync.lua
+Timers.lua
+VoicePacks.lua
+Options.lua
