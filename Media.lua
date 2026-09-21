@@ -1,22 +1,8 @@
-local LSM = LibStub("LibSharedMedia-3.0") 
+local LSM = LibStub("LibSharedMedia-3.0")
 
--- ----- 
--- BACKGROUND 
--- ----- 
-
--- ----- 
---  BORDER 
--- ---- 
-
--- -----
---   FONT
--- -----
 LSM:Register("font", "Numen", [[Interface\Addons\FojjiCore\font\Numen.ttf]])
-LSM:Register("font", "FojjiArcade", [[Interface\Addons\FojjiCore\font\FojjiArcade.ttf]]) 
+LSM:Register("font", "FojjiArcade", [[Interface\Addons\FojjiCore\font\FojjiArcade.ttf]])
 
--- -----
---   SOUND
--- -----
 LSM:Register("sound", "fojji Alarm Beep", [[Interface\Addons\FojjiCore\sound\alarmbeep.ogg]])
 LSM:Register("sound", "fojji Beep", [[Interface\Addons\FojjiCore\sound\Beep.ogg]])
 LSM:Register("sound", "fojji Bell", [[Interface\Addons\FojjiCore\sound\Bell.ogg]])
@@ -121,9 +107,6 @@ LSM:Register("sound", "fojjiMeme |cFFFF0000CleverGirl|r", [[Interface\Addons\Foj
 LSM:Register("sound", "fojjiMeme |cFFFF0000DinosaurEat2|r", [[Interface\Addons\FojjiCore\sound\DinosaurEat2.ogg]])
 LSM:Register("sound", "fojjiMeme |cFFFF0000JurassicParkTheme|r", [[Interface\Addons\FojjiCore\sound\JurassicParkTheme.ogg]])
 
--- -----
---   STATUSBAR
--- -----
 LSM:Register("statusbar", "fojjiBlank", [[Interface\Addons\FojjiCore\statusbar\fojjiBlank.tga]])
 LSM:Register("statusbar", "fojjiFlat", [[Interface\Addons\FojjiCore\statusbar\fojjiFlat.tga]])
 LSM:Register("statusbar", "fojjiKUI", [[Interface\Addons\FojjiCore\statusbar\fojjiKUI.tga]])

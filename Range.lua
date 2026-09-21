@@ -1,3 +1,6 @@
+-- /range <yards>, /range cancel; /range toggles off an active range.
+-- Prefix: FojjiRangeAddon. Messages: _RANGE_SET:<yards>, _RANGE_CLEAR
+
 if WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then return end
 
 local isDBMLoaded = C_AddOns.IsAddOnLoaded("DBM-Core")
@@ -18,15 +21,15 @@ end
 
 SLASH_FOJJIRANGE1 = "/range"
 SlashCmdList["FOJJIRANGE"] = function(msg)
-    local input = strtrim(msg)  -- Remove any leading/trailing spaces
+    local input = strtrim(msg)
 
-    if input:match("^%d+$") then  -- Check if the input is just a number
+    if input:match("^%d+$") then
         local rangeValue = tonumber(input)
         lastRangeValue = rangeValue
         sendRangeEvent(rangeValue)
     elseif input == "" then
         if lastRangeValue then
-            -- If there's an active display, cancel it
+
             lastRangeValue = nil
             sendRangeEvent()
         else

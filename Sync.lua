@@ -1,3 +1,7 @@
+-- SyncEvents(channel, target, event, ...) -> WeakAuras.ScanEvents(event, ...)
+-- Receive channels: PARTY, RAID, INSTANCE_CHAT, GUILD, OFFICER
+-- Prefix: WA_SYNC_EVENTS
+
 local LibDeflate = LibStub:GetLibrary("LibDeflate")
 local LibSerialize = LibStub("LibSerialize")
 local AceComm = LibStub:GetLibrary("AceComm-3.0")

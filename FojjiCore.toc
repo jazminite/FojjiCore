@@ -1,7 +1,7 @@
-## Interface: 50504, 40402, 30405, 20506, 11509
+## Interface: 16001, 50504, 40402, 30405, 20506, 11509
 ## Title: FojjiCore
 ## RequiredDeps: WeakAuras
-## Version: 2.0.2
+## Version: 2.0.8
 ## X-Wago-ID: XKq9B5Ky
 ## IconTexture: Interface\AddOns\FojjiCore\textures\FojjiIcons\F_icon_lightblue.png
 ## SavedVariables: FojjiCoreDB
@@ -19,4 +19,5 @@ Scripts.lua
 Sync.lua
 Timers.lua
 VoicePacks.lua
+OptionsMenu.lua
 Options.lua
