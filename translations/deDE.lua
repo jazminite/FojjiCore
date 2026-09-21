@@ -1,4 +1,4 @@
 FojjiCore.RegisterTranslations("deDE", {
 
-    MOVE = "Bewegen",
+    "Move" = "Bewegen",
 })

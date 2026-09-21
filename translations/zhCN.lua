@@ -1,4 +1,4 @@
 FojjiCore.RegisterTranslations("zhCN", {
 
-    MOVE = "移动",
+    "Move" = "移动",
 })

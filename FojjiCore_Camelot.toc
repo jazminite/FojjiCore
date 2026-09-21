@@ -2,7 +2,7 @@
 ## AllowLoadGameType: camelot
 ## Title: FojjiCore
 ## RequiredDeps: ForeverAuras
-## Version: 2.0.8
+## Version: 2.1.0
 ## X-Wago-ID: XKq9B5Ky
 ## IconTexture: Interface\AddOns\FojjiCore\textures\FojjiIcons\F_icon_lightblue.png
 ## SavedVariables: FojjiCoreDB

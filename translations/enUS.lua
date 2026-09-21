@@ -1,4 +1,4 @@
 FojjiCore.RegisterTranslations("enUS", {
     
-    MOVE = "Move",
+    "Move" = "Move",
 })

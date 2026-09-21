@@ -1,4 +1,4 @@
 FojjiCore.RegisterTranslations("koKR", {
     
-    MOVE = "이동",
+    "Move" = "이동",
 })
