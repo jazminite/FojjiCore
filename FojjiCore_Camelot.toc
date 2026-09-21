@@ -1,0 +1,29 @@
+## Interface: 16001
+## AllowLoadGameType: camelot
+## Title: FojjiCore
+## RequiredDeps: ForeverAuras
+## Version: 2.0.8
+## X-Wago-ID: XKq9B5Ky
+## IconTexture: Interface\AddOns\FojjiCore\textures\FojjiIcons\F_icon_lightblue.png
+## SavedVariables: FojjiCoreDB
+
+# Libs
+libs\LibStub\LibStub.lua
+libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
+libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
+libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
+
+# Core files
+Forever\Backend.lua
+Media.lua
+Forever\Scripts.lua
+Forever\Sync.lua
+Forever\Timers.lua
+VoicePacks.lua
+Forever\SpeedrunData.lua
+Forever\SpeedrunSettings.lua
+Forever\Speedrun.lua
+OptionsMenu.lua
+Forever\SpeedrunUI.lua
+Forever\SpeedrunOptions.lua
+Options.lua

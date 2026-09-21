@@ -1,4 +1,4 @@
-## Interface: 50504, 40402, 30405, 20506, 11509
+## Interface: 16001, 50504, 40402, 30405, 20506, 11509
 ## Title: FojjiCore
 ## RequiredDeps: WeakAuras
 ## Version: 2.1.0
@@ -20,4 +20,5 @@ Scripts.lua
 Sync.lua
 Timers.lua
 VoicePacks.lua
+OptionsMenu.lua
 Options.lua

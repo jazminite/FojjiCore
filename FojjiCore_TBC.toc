@@ -26,4 +26,5 @@ Scripts.lua
 Sync.lua
 Timers.lua
 VoicePacks.lua
+OptionsMenu.lua
 Options.lua
