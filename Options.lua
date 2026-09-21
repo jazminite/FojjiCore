@@ -1,3 +1,10 @@
+-- /fc or /fojjicore
+-- FojjiCore:ToggleOptions(tab): tts, font, general, about; speedrun on Forever only
+
+local _, Addon = ...
+local AuraAPI = Addon.AuraAPI or WeakAuras
+local auraName = Addon.AuraAPI and "ForeverAuras" or "WeakAuras"
+local defaultTab = Addon.CreateSpeedrunPage and "speedrun" or "tts"
 local ICON = "Interface\\AddOns\\FojjiCore\\textures\\FojjiIcons\\F_icon_lightblue"
 local FONT = "Interface\\AddOns\\FojjiCore\\font\\Numen.ttf"
 
@@ -8,52 +15,51 @@ local DBIcon = LibStub("LibDBIcon-1.0")
 local SharedMedia = LibStub("LibSharedMedia-3.0")
 
 local COLORS = {
-    accent       = {0.17,0.67,0.95},
-    title        = {0.40,0.85,1.00},
-    frame        = {0.018,0.021,0.026},
-    header       = {0.022,0.026,0.032},
-    sidebar      = {0.025,0.032,0.040},
-    content      = {0.035,0.040,0.048},
-    field        = {0.024,0.028,0.034},
-    fieldHover   = {0.044,0.052,0.064},
-    button       = {0.052,0.058,0.068},
-    buttonHover  = {0.075,0.088,0.105},
-    border       = {0.16,0.18,0.22},
-    borderDim    = {0.13,0.15,0.18},
-    text         = {0.88,0.89,0.91},
-    dim          = {0.50,0.53,0.57},
-    tab          = {0.61,0.64,0.68},
-    tabHover     = {0.88,0.90,0.92},
-    scroll       = {0.08,0.09,0.11},
-    white        = {1,1,1},
-    warning      = {1.00,0.25,0.25},
+    accent = {0.40,0.70,1.00},
+    title = {0.90,0.94,1.00},
+    frame = {0.018,0.021,0.026},
+    header = {0.022,0.026,0.032},
+    sidebar = {0.025,0.032,0.040},
+    content = {0.035,0.040,0.048},
+    field = {0.024,0.028,0.034},
+    fieldHover = {0.044,0.052,0.064},
+    button = {0.052,0.058,0.068},
+    buttonHover = {0.075,0.088,0.105},
+    border = {0.16,0.18,0.22},
+    borderDim = {0.13,0.15,0.18},
+    text = {0.88,0.89,0.91},
+    dim = {0.50,0.53,0.57},
+    tab = {0.61,0.64,0.68},
+    tabHover = {0.88,0.90,0.92},
+    scroll = {0.08,0.09,0.11},
+    white = {1,1,1},
+    warning = {1.00,0.25,0.25},
 }
 
 local LAYOUT = {
-    width = 760,
-    height = 570,
-    headerHeight = 76,
-    sidebarWidth = 180,
-    contentPadding = 36,
-
+    width = 880,
+    height = 620,
+    headerHeight = 60,
+    sidebarWidth = 164,
+    contentPadding = 20,
     fieldWidth = 410,
     fieldHeight = 34,
-
     sliderWidth = 380,
     sliderHeight = 60,
-
     checkboxWidth = 240,
     checkboxHeight = 22,
-
     menuWidth = 410,
     menuContentWidth = 386,
     menuRowHeight = 30,
     menuMaxRows = 7,
-
-    buttonHeight = 32,
+    buttonHeight = 28,
 }
 
 local DEFAULTS = {
+    theme = "ember",
+    windowWidth = 880,
+    windowHeight = 620,
+    optionsScale = 1,
     ttsVolume = 75,
     ttsRate = 1.8,
     ttsVoiceID = 0,
@@ -61,10 +67,10 @@ local DEFAULTS = {
     ttsVoicePack = "Arabella",
     ttsRandomFavorites = false,
     ttsVoiceFavorites = {},
+    ttsSoundChannel = "Master",
     disableTTS = false,
     fontName = "Numen",
     fontTarget = "ALL",
-
     minimap = {
         hide = false,
     },
@@ -83,1321 +89,1249 @@ local TEST_PHRASES = {
     "Whirlwind",
 }
 
+local SOUND_CHANNELS = {
+    {value = "Master", text = "Master"},
+    {value = "SFX", text = "Sound Effects"},
+    {value = "Music", text = "Music"},
+    {value = "Ambience", text = "Ambience"},
+    {value = "Dialog", text = "Dialog"},
+}
+
 local DB
 local frame
-local dropdownMenu
 
 local pages = {}
 local tabs = {}
 local controls = {}
 
+local themeTextures = setmetatable({}, { __mode = "k" })
+local themeFonts = setmetatable({}, { __mode = "k" })
+local themeGlows = setmetatable({}, { __mode = "k" })
+local THEME_ORDER = { "ember", "fojji", "arcane", "jade" }
+local THEMES = {
+    fojji = { name = "Fojji / Azure", rgb = {0.40,0.70,1.00} },
+    ember = { name = "Ember / Crimson", rgb = {1.00,0.30,0.26} },
+    arcane = { name = "Arcane / Violet", rgb = {0.70,0.48,1.00} },
+    jade = { name = "Jade / Emerald", rgb = {0.20,0.88,0.66} },
+}
+local function applyTheme(key)
+    local theme = THEMES[key] or THEMES.ember
+    local r,g,b = unpack(theme.rgb)
+    COLORS.accent = {r,g,b}
+    COLORS.title = {0.90,0.94,1}
+    COLORS.frame = {0.015+r*0.014,0.018+g*0.014,0.026+b*0.014}
+    COLORS.header = {0.025+r*0.08,0.028+g*0.08,0.036+b*0.08}
+    COLORS.sidebar = {0.025+r*0.025,0.028+g*0.025,0.035+b*0.025}
+    COLORS.content = {0.055+r*0.018,0.060+g*0.018,0.073+b*0.018}
+    COLORS.border = {0.10+r*0.24,0.10+g*0.24,0.12+b*0.24}
+    COLORS.borderDim = {0.07+r*0.12,0.08+g*0.12,0.10+b*0.12}
+    COLORS.button = {0.035+r*0.07,0.04+g*0.07,0.05+b*0.07}
+    COLORS.buttonHover = {0.045+r*0.17,0.05+g*0.17,0.06+b*0.17}
+    for texture, data in pairs(themeTextures) do
+        local c = COLORS[data.name]
+        texture:SetColorTexture(c[1],c[2],c[3],data.alpha or 1)
+    end
+    for texture in pairs(themeGlows) do
+        texture:SetVertexColor(r, g, b)
+    end
+    for font, name in pairs(themeFonts) do
+        local c = COLORS[name]
+        font:SetTextColor(c[1],c[2],c[3])
+    end
+    if DB then DB.theme = THEMES[key] and key or "ember" end
+    if Addon.SpeedrunRefreshTheme then Addon.SpeedrunRefreshTheme() end
+end
+
+function Addon.GetAccent()
+    return COLORS.accent[1],COLORS.accent[2],COLORS.accent[3]
+end
+
+function Addon.GetColor(name)
+    local c = COLORS[name] or COLORS.text
+    return c[1],c[2],c[3]
+end
+
 local function color(name,alpha)
-local c = COLORS[name]
-return c[1],c[2],c[3],alpha or 1
+    local c = COLORS[name]
+    return c[1],c[2],c[3],alpha or 1
 end
 
 local function createTexture(parent,layer,colorName,alpha)
-local texture = parent:CreateTexture(nil,layer)
-texture:SetColorTexture(color(colorName,alpha))
-return texture
+    local texture = parent:CreateTexture(nil,layer)
+    texture:SetColorTexture(color(colorName,alpha))
+    themeTextures[texture] = { name = colorName, alpha = alpha }
+    return texture
+end
+
+local function createArtwork(parent, asset, layer, tinted)
+    local texture = parent:CreateTexture(nil, layer or "BACKGROUND", nil, 1)
+    texture:SetTexture("Interface\\AddOns\\FojjiCore\\textures\\UI\\"..asset)
+    if tinted then
+        texture:SetVertexColor(color("accent"))
+        themeGlows[texture] = true
+    end
+    return texture
 end
 
 local function createText(parent,text,size,colorName)
-local font = parent:CreateFontString(nil,"OVERLAY")
-font:SetFont(FONT,size or 12,"OUTLINE")
-font:SetText(text or "")
-font:SetTextColor(color(colorName or "text"))
-return font
+    local font = parent:CreateFontString(nil,"OVERLAY")
+    font:SetFont(FONT,math.max(9,math.floor((size or 12)*0.8+0.5)),"")
+    font:SetText(text or "")
+    font:SetTextColor(color(colorName or "text"))
+    themeFonts[font] = colorName or "text"
+    return font
 end
 
 local function createBorder(parent,colorName,alpha,inset)
-inset = inset or 0
-colorName = colorName or "border"
+    inset = inset or 0
+    colorName = colorName or "border"
 
-local border = {}
+    local border = {}
 
-border.top = createTexture(parent,"BORDER",colorName,alpha)
-border.top:SetPoint("TOPLEFT",inset,-inset)
-border.top:SetPoint("TOPRIGHT",-inset,-inset)
-border.top:SetHeight(1)
+    border.top = createTexture(parent,"BORDER",colorName,alpha)
+    border.top:SetPoint("TOPLEFT",inset,-inset)
+    border.top:SetPoint("TOPRIGHT",-inset,-inset)
+    border.top:SetHeight(1)
 
-border.bottom = createTexture(parent,"BORDER",colorName,alpha)
-border.bottom:SetPoint("BOTTOMLEFT",inset,inset)
-border.bottom:SetPoint("BOTTOMRIGHT",-inset,inset)
-border.bottom:SetHeight(1)
+    border.bottom = createTexture(parent,"BORDER",colorName,alpha)
+    border.bottom:SetPoint("BOTTOMLEFT",inset,inset)
+    border.bottom:SetPoint("BOTTOMRIGHT",-inset,inset)
+    border.bottom:SetHeight(1)
 
-border.left = createTexture(parent,"BORDER",colorName,alpha)
-border.left:SetPoint("TOPLEFT",inset,-inset)
-border.left:SetPoint("BOTTOMLEFT",inset,inset)
-border.left:SetWidth(1)
+    border.left = createTexture(parent,"BORDER",colorName,alpha)
+    border.left:SetPoint("TOPLEFT",inset,-inset)
+    border.left:SetPoint("BOTTOMLEFT",inset,inset)
+    border.left:SetWidth(1)
 
-border.right = createTexture(parent,"BORDER",colorName,alpha)
-border.right:SetPoint("TOPRIGHT",-inset,-inset)
-border.right:SetPoint("BOTTOMRIGHT",-inset,inset)
-border.right:SetWidth(1)
+    border.right = createTexture(parent,"BORDER",colorName,alpha)
+    border.right:SetPoint("TOPRIGHT",-inset,-inset)
+    border.right:SetPoint("BOTTOMRIGHT",-inset,inset)
+    border.right:SetWidth(1)
 
-return border
+    return border
 end
 
 local function setBorderColor(border,colorName,alpha)
-for _,texture in pairs(border) do
-    texture:SetColorTexture(color(colorName,alpha))
-end
+    for _,texture in pairs(border) do
+        texture:SetColorTexture(color(colorName,alpha))
+    end
 end
 
 local function anchorBelow(object,previous,gap)
-object:ClearAllPoints()
-object:SetPoint("TOPLEFT",previous,"BOTTOMLEFT",0,-(gap or 8))
+    object:ClearAllPoints()
+    object:SetPoint("TOPLEFT",previous,"BOTTOMLEFT",0,-(gap or 8))
 end
 
 local function applyDefaults(target,defaults)
-for key,value in pairs(defaults) do
-    if type(value) == "table" then
-        target[key] = target[key] or {}
-        applyDefaults(target[key],value)
-    elseif target[key] == nil then
-        target[key] = value
+    for key,value in pairs(defaults) do
+        if type(value) == "table" then
+            target[key] = target[key] or {}
+            applyDefaults(target[key],value)
+        elseif target[key] == nil then
+            target[key] = value
+        end
     end
-end
 end
 
 local function migrateDB()
-if not DB.dbVersion or DB.dbVersion < DB_VERSION then
-    local hide = DB.minimap and DB.minimap.hide or false
+    if not DB.dbVersion or DB.dbVersion < DB_VERSION then
+        local hide = DB.minimap and DB.minimap.hide or false
 
-    DB.minimap = {
-        hide = hide,
-    }
+        DB.minimap = {
+            hide = hide,
+        }
 
-    DB.dbVersion = DB_VERSION
-end
+        DB.dbVersion = DB_VERSION
+    end
 end
 
 local function hideDropdown()
-if dropdownMenu then
-    dropdownMenu:Hide()
-end
+    Addon.OptionsMenu.Close()
 end
 
 local function createSeparator(parent,y)
-local line = createTexture(parent,"ARTWORK","borderDim")
-line:SetPoint("TOPLEFT",0,y)
-line:SetPoint("TOPRIGHT",0,y)
-line:SetHeight(1)
-return line
+    local line = createTexture(parent,"ARTWORK","borderDim")
+    line:SetPoint("TOPLEFT",0,y)
+    line:SetPoint("TOPRIGHT",0,y)
+    line:SetHeight(1)
+    return line
 end
 
 local function createButton(parent,text,width)
-local button = CreateFrame("Button",nil,parent)
-button:SetSize(width,LAYOUT.buttonHeight)
+    local button = CreateFrame("Button",nil,parent)
+    button:SetSize(width,LAYOUT.buttonHeight)
 
-button.bg = createTexture(button,"BACKGROUND","button")
-button.bg:SetAllPoints()
+    button.bg = createTexture(button,"BACKGROUND","button")
+    button.bg:SetAllPoints()
 
-button.border = createBorder(button)
+    button.border = createBorder(button)
 
-button.label = createText(button,text,12)
-button.label:SetPoint("CENTER")
+    button.label = createText(button,text,12)
+    button.label:SetPoint("CENTER")
 
-button:SetScript("OnEnter",function(self)
-    self.bg:SetColorTexture(color("buttonHover"))
-    setBorderColor(self.border,"accent",0.75)
-end)
+    button:SetScript("OnEnter",function(self)
+        self.bg:SetColorTexture(color("buttonHover"))
+        setBorderColor(self.border,"accent",0.75)
+    end)
 
-button:SetScript("OnLeave",function(self)
-    self.bg:SetColorTexture(color("button"))
-    setBorderColor(self.border,"border")
-end)
+    button:SetScript("OnLeave",function(self)
+        self.bg:SetColorTexture(color("button"))
+        setBorderColor(self.border,"border")
+    end)
 
-return button
+    return button
 end
 
 local function createCheckbox(parent,text,onChanged)
-local button = CreateFrame("Button",nil,parent)
-button:SetSize(LAYOUT.checkboxWidth,LAYOUT.checkboxHeight)
+    local button = CreateFrame("Button",nil,parent)
+    button:SetSize(LAYOUT.checkboxWidth,LAYOUT.checkboxHeight)
 
-local box = CreateFrame("Frame",nil,button)
-box:SetSize(16,16)
-box:SetPoint("LEFT")
+    local box = CreateFrame("Frame",nil,button)
+    box:SetSize(16,16)
+    box:SetPoint("LEFT")
 
-local bg = createTexture(box,"BACKGROUND","field")
-bg:SetAllPoints()
+    local bg = createTexture(box,"BACKGROUND","field")
+    bg:SetAllPoints()
 
-button.border = createBorder(box,"border")
+    button.border = createBorder(box,"border")
 
-button.check = createTexture(box,"ARTWORK","accent")
-button.check:SetPoint("TOPLEFT",3,-3)
-button.check:SetPoint("BOTTOMRIGHT",-3,3)
-button.check:Hide()
+    button.check = createTexture(box,"ARTWORK","accent")
+    button.check:SetPoint("TOPLEFT",3,-3)
+    button.check:SetPoint("BOTTOMRIGHT",-3,3)
+    button.check:Hide()
 
-button.label = createText(button,text,12)
-button.label:SetPoint("LEFT",box,"RIGHT",9,0)
+    button.label = createText(button,text,12)
+    button.label:SetPoint("LEFT",box,"RIGHT",9,0)
 
-button.checked = false
+    button.checked = false
 
-function button:SetChecked(value)
-self.checked = value and true or false
-self.check:SetShown(self.checked)
-end
-
-function button:GetChecked()
-return self.checked
-end
-
-button:SetScript("OnClick",function(self)
-    self:SetChecked(not self:GetChecked())
-
-    if onChanged then
-        onChanged(self:GetChecked())
+    function button:SetChecked(value)
+        self.checked = value and true or false
+        self.check:SetShown(self.checked)
     end
-end)
 
-button:SetScript("OnEnter",function(self)
-    setBorderColor(self.border,"accent",0.85)
-    self.label:SetTextColor(color("white"))
-end)
+    function button:GetChecked()
+        return self.checked
+    end
 
-button:SetScript("OnLeave",function(self)
-    setBorderColor(self.border,"border")
-    self.label:SetTextColor(color("text"))
-end)
+    button:SetScript("OnClick",function(self)
+        self:SetChecked(not self:GetChecked())
 
-return button
+        if onChanged then
+            onChanged(self:GetChecked())
+        end
+    end)
+
+    button:SetScript("OnEnter",function(self)
+        setBorderColor(self.border,"accent",0.85)
+        self.label:SetTextColor(color("white"))
+    end)
+
+    button:SetScript("OnLeave",function(self)
+        setBorderColor(self.border,"border")
+        self.label:SetTextColor(color("text"))
+    end)
+
+    return button
 end
 
 local function createSlider(parent,labelText,minValue,maxValue,step)
-local container = CreateFrame("Frame",nil,parent)
-container:SetSize(455,LAYOUT.sliderHeight)
+    local container = CreateFrame("Frame",nil,parent)
+    container:SetSize(455,LAYOUT.sliderHeight)
 
-local label = createText(container,labelText,13,"white")
-label:SetPoint("TOPLEFT")
+    local label = createText(container,labelText,13,"white")
+    label:SetPoint("TOPLEFT")
 
-local track = CreateFrame("Frame",nil,container)
-track:SetSize(LAYOUT.sliderWidth,18)
-track:SetPoint("TOPLEFT",label,"BOTTOMLEFT",0,-13)
+    local track = CreateFrame("Frame",nil,container)
+    track:SetSize(LAYOUT.sliderWidth,18)
+    track:SetPoint("TOPLEFT",label,"BOTTOMLEFT",0,-13)
 
-local bg = createTexture(track,"BACKGROUND","scroll")
-bg:SetPoint("LEFT")
-bg:SetPoint("RIGHT")
-bg:SetHeight(4)
+    local bg = createTexture(track,"BACKGROUND","scroll")
+    bg:SetPoint("LEFT")
+    bg:SetPoint("RIGHT")
+    bg:SetHeight(4)
 
-local slider = CreateFrame("Slider",nil,track)
-slider:SetAllPoints()
-slider:SetOrientation("HORIZONTAL")
-slider:SetMinMaxValues(minValue,maxValue)
-slider:SetValueStep(step)
-slider:SetObeyStepOnDrag(true)
+    local slider = CreateFrame("Slider",nil,track)
+    slider:SetAllPoints()
+    slider:SetOrientation("HORIZONTAL")
+    slider:SetMinMaxValues(minValue,maxValue)
+    slider:SetValueStep(step)
+    slider:SetObeyStepOnDrag(true)
 
-local thumb = slider:CreateTexture(nil,"ARTWORK")
-thumb:SetSize(12,20)
-thumb:SetColorTexture(color("accent"))
-slider:SetThumbTexture(thumb)
+    local thumb = slider:CreateTexture(nil,"ARTWORK")
+    thumb:SetSize(12,20)
+    thumb:SetColorTexture(color("accent"))
+    slider:SetThumbTexture(thumb)
 
-local minText = createText(container,tostring(minValue),10,"dim")
-minText:SetPoint("TOPLEFT",track,"BOTTOMLEFT",0,-4)
+    local minText = createText(container,tostring(minValue),10,"dim")
+    minText:SetPoint("TOPLEFT",track,"BOTTOMLEFT",0,-4)
 
-local maxText = createText(container,tostring(maxValue),10,"dim")
-maxText:SetPoint("TOPRIGHT",track,"BOTTOMRIGHT",0,-4)
+    local maxText = createText(container,tostring(maxValue),10,"dim")
+    maxText:SetPoint("TOPRIGHT",track,"BOTTOMRIGHT",0,-4)
 
-slider.valueText = createText(container,"",12,"white")
-slider.valueText:SetPoint("LEFT",track,"RIGHT",20,0)
-slider.container = container
+    slider.valueText = createText(container,"",12,"white")
+    slider.valueText:SetPoint("LEFT",track,"RIGHT",20,0)
+    slider.container = container
 
-return slider
+    return slider
 end
 
 local function createSectionLabel(parent,text)
-return createText(parent,text,13,"white")
+    return createText(parent,text,13,"white")
 end
 
-local function createPageHeader(parent,title,description)
-local titleText = createText(parent,title,20,"title")
-titleText:SetPoint("TOPLEFT")
+local function createPageHeader(parent,title)
+    local titleText = createText(parent,title,20,"title")
+    titleText:SetPoint("TOPLEFT")
 
-local descriptionText = createText(parent,description,12)
-descriptionText:SetTextColor(0.68,0.70,0.74)
-descriptionText:SetPoint("TOPLEFT",titleText,"BOTTOMLEFT",0,-9)
+    createSeparator(parent,-40)
+    return titleText
+end
 
-createSeparator(parent,-56)
-
-return descriptionText
+local function createScrollFrame(parent)
+    local scroll = CreateFrame("ScrollFrame",nil,parent)
+    scroll:EnableMouseWheel(true)
+    local bar = CreateFrame("Slider",nil,scroll)
+    bar:SetPoint("TOPLEFT",scroll,"TOPRIGHT",10,0)
+    bar:SetPoint("BOTTOMLEFT",scroll,"BOTTOMRIGHT",10,0)
+    bar:SetWidth(7)
+    bar:SetOrientation("VERTICAL")
+    bar:SetMinMaxValues(0,0)
+    bar:SetValueStep(1)
+    local track = createTexture(bar,"BACKGROUND","borderDim")
+    track:SetAllPoints()
+    local thumb = createTexture(bar,"ARTWORK","accent",0.65)
+    thumb:SetSize(7,36)
+    bar:SetThumbTexture(thumb)
+    bar:SetScript("OnValueChanged",function(_,value) scroll:SetVerticalScroll(value) end)
+    scroll:SetScript("OnScrollRangeChanged",function(_,_,range)
+        bar:SetMinMaxValues(0,range)
+        bar:SetShown(range > 0)
+        if scroll:GetVerticalScroll() > range then scroll:SetVerticalScroll(range) end
+    end)
+    scroll:SetScript("OnVerticalScroll",function(_,value)
+        if bar:GetValue() ~= value then bar:SetValue(value) end
+    end)
+    scroll:SetScript("OnMouseWheel",function(_,delta)
+        scroll:SetVerticalScroll(math.max(0,math.min(scroll:GetVerticalScrollRange(),scroll:GetVerticalScroll()-delta*36)))
+    end)
+    return scroll
 end
 
 local function createDropdownButton(parent)
-local button = CreateFrame("Button",nil,parent)
-button:SetSize(LAYOUT.fieldWidth,LAYOUT.fieldHeight)
+    local button = CreateFrame("Button",nil,parent)
+    button:SetSize(LAYOUT.fieldWidth,LAYOUT.fieldHeight)
 
-button.bg = createTexture(button,"BACKGROUND","field")
-button.bg:SetAllPoints()
+    button.bg = createTexture(button,"BACKGROUND","field")
+    button.bg:SetAllPoints()
 
-button.border = createBorder(button)
+    button.border = createBorder(button)
 
-button.text = createText(button,"",11)
-button.text:SetPoint("LEFT",12,0)
-button.text:SetPoint("RIGHT",-38,0)
-button.text:SetJustifyH("LEFT")
+    button.text = createText(button,"",11)
+    button.text:SetPoint("LEFT",12,0)
+    button.text:SetPoint("RIGHT",-38,0)
+    button.text:SetJustifyH("LEFT")
 
-button.arrow = createText(button,"v",11)
-button.arrow:SetTextColor(0.65,0.68,0.72)
-button.arrow:SetPoint("RIGHT",-14,2)
+    button.arrow = createText(button,"v",11)
+    button.arrow:SetTextColor(0.65,0.68,0.72)
+    button.arrow:SetPoint("RIGHT",-14,2)
 
-button:SetScript("OnEnter",function(self)
-    self.bg:SetColorTexture(color("fieldHover"))
-    setBorderColor(self.border,"accent",0.70)
-end)
-
-button:SetScript("OnLeave",function(self)
-    self.bg:SetColorTexture(color("field"))
-    setBorderColor(self.border,"border")
-end)
-
-return button
-end
-
-local function createDropdownMenu(button,entries)
-if dropdownMenu then
-    dropdownMenu:Hide()
-    dropdownMenu:SetParent(nil)
-    dropdownMenu = nil
-end
-
-local rowHeight = LAYOUT.menuRowHeight
-local visibleRows = math.min(#entries,LAYOUT.menuMaxRows)
-local visibleHeight = visibleRows*rowHeight
-local contentHeight = math.max(#entries*rowHeight,1)
-local menuHeight = visibleHeight+8
-local maxScroll = math.max(0,contentHeight-visibleHeight)
-
-dropdownMenu = CreateFrame("Frame",nil,frame)
-dropdownMenu.owner = button
-dropdownMenu:SetSize(LAYOUT.menuWidth,menuHeight)
-dropdownMenu:SetPoint("TOPLEFT",button,"BOTTOMLEFT",0,-4)
-dropdownMenu:SetFrameStrata("TOOLTIP")
-dropdownMenu:SetFrameLevel(200)
-
-local bg = createTexture(dropdownMenu,"BACKGROUND","header")
-bg:SetAllPoints()
-
-createBorder(dropdownMenu)
-
-local scrollFrame = CreateFrame("ScrollFrame",nil,dropdownMenu)
-scrollFrame:SetPoint("TOPLEFT",4,-4)
-scrollFrame:SetPoint("BOTTOMRIGHT",-20,4)
-scrollFrame:EnableMouseWheel(true)
-
-local child = CreateFrame("Frame",nil,scrollFrame)
-child:SetSize(LAYOUT.menuContentWidth,contentHeight)
-scrollFrame:SetScrollChild(child)
-
-local scrollbar = CreateFrame("Slider",nil,dropdownMenu)
-scrollbar:SetWidth(10)
-scrollbar:SetPoint("TOPRIGHT",-5,-6)
-scrollbar:SetPoint("BOTTOMRIGHT",-5,6)
-scrollbar:SetOrientation("VERTICAL")
-scrollbar:SetMinMaxValues(0,maxScroll)
-scrollbar:SetValueStep(rowHeight)
-scrollbar:SetObeyStepOnDrag(false)
-
-local scrollbarTrack = createTexture(scrollbar,"BACKGROUND","scroll")
-scrollbarTrack:SetWidth(2)
-scrollbarTrack:SetPoint("TOP",0,-2)
-scrollbarTrack:SetPoint("BOTTOM",0,2)
-
-local thumb = scrollbar:CreateTexture(nil,"ARTWORK")
-thumb:SetSize(6,30)
-thumb:SetColorTexture(color("accent",0.85))
-scrollbar:SetThumbTexture(thumb)
-
-if maxScroll > 0 then
-    local ratio = visibleHeight/contentHeight
-    thumb:SetHeight(math.max(26,math.floor((menuHeight-12)*ratio)))
-else
-    scrollbar:Hide()
-end
-
-scrollbar:SetScript("OnValueChanged",function(_,value)
-    scrollFrame:SetVerticalScroll(value)
-end)
-
-scrollbar:SetScript("OnEnter",function()
-    thumb:SetColorTexture(color("title"))
-end)
-
-scrollbar:SetScript("OnLeave",function()
-    thumb:SetColorTexture(color("accent",0.85))
-end)
-
-scrollFrame:SetScript("OnMouseWheel",function(_,delta)
-    if maxScroll <= 0 then
-        return
-    end
-
-    local scroll = scrollFrame:GetVerticalScroll()
-    scroll = math.max(0,math.min(maxScroll,scroll-delta*rowHeight))
-    scrollbar:SetValue(scroll)
-end)
-
-local selectedIndex
-
-for i,entryData in ipairs(entries) do
-    local entry = entryData
-    local selected = entry.selected
-
-    local row = CreateFrame("Button",nil,child)
-    row:SetSize(LAYOUT.menuContentWidth,rowHeight)
-    row:SetPoint("TOPLEFT",0,-((i-1)*rowHeight))
-
-    if selected then
-        selectedIndex = i
-    end
-
-    local selectedBG = createTexture(row,"BACKGROUND","accent",0.10)
-    selectedBG:SetAllPoints()
-    selectedBG:SetShown(selected)
-
-    local selectedBar = createTexture(row,"ARTWORK","accent")
-    selectedBar:SetPoint("TOPLEFT")
-    selectedBar:SetPoint("BOTTOMLEFT")
-    selectedBar:SetWidth(2)
-    selectedBar:SetShown(selected)
-
-    local hover = createTexture(row,"BACKGROUND","accent",0.07)
-    hover:SetAllPoints()
-    hover:Hide()
-
-    local text = createText(row,entry.text,11)
-    text:SetPoint("LEFT",10,0)
-    text:SetPoint("RIGHT",entry.onFavorite and -105 or -10,0)
-    text:SetJustifyH("LEFT")
-
-    if selected then
-        text:SetTextColor(color("white"))
-    end
-
-    if entry.tag then
-        local tag = createText(row,entry.tag,9,"accent")
-        tag:SetPoint("RIGHT",entry.onFavorite and -52 or -10,0)
-    end
-
-    if entry.onFavorite then
-        local favorite = CreateFrame("Button",nil,row)
-        favorite:SetSize(40,22)
-        favorite:SetPoint("RIGHT",-4,0)
-        favorite:SetFrameLevel(row:GetFrameLevel()+2)
-
-        favorite.bg = createTexture(favorite,"BACKGROUND","button")
-        favorite.bg:SetAllPoints()
-
-        favorite.border = createBorder(favorite,"borderDim")
-
-        favorite.label = createText(favorite,"FAV",8)
-        favorite.label:SetPoint("CENTER",0,1)
-
-        local function updateFavorite()
-        if entry.favorite then
-            favorite.bg:SetColorTexture(color("accent",0.14))
-            favorite.label:SetTextColor(color("title"))
-            setBorderColor(favorite.border,"accent",0.70)
-        else
-            favorite.bg:SetColorTexture(color("button"))
-            favorite.label:SetTextColor(0.43,0.46,0.50)
-            setBorderColor(favorite.border,"borderDim")
-        end
-    end
-
-    updateFavorite()
-
-    favorite:SetScript("OnEnter",function()
-        favorite.bg:SetColorTexture(color("accent",0.18))
-        favorite.label:SetTextColor(color("title"))
-        setBorderColor(favorite.border,"accent",0.85)
+    button:SetScript("OnEnter",function(self)
+        self.bg:SetColorTexture(color("fieldHover"))
+        setBorderColor(self.border,"accent",0.70)
     end)
 
-    favorite:SetScript("OnLeave",updateFavorite)
-
-    favorite:SetScript("OnClick",function()
-        entry.favorite = not entry.favorite
-        entry.onFavorite(entry.favorite)
-        updateFavorite()
+    button:SetScript("OnLeave",function(self)
+        self.bg:SetColorTexture(color("field"))
+        setBorderColor(self.border,"border")
     end)
+
+    return button
 end
 
-row:SetScript("OnEnter",function()
-    if not selected then
-        hover:Show()
+local function createDropdownMenu(button, entries)
+    local items = {}
+    for _, entry in ipairs(entries) do
+        items[#items + 1] = {
+            text = entry.text, tag = entry.tag, checked = entry.selected,
+            onClick = entry.onClick, favorite = entry.favorite, onFavorite = entry.onFavorite,
+        }
     end
-end)
-
-row:SetScript("OnLeave",function()
-    hover:Hide()
-end)
-
-row:SetScript("OnClick",function()
-    if entry.onClick then
-        entry.onClick()
-    end
-
-    hideDropdown()
-end)
-end
-
-local initialScroll = 0
-
-if selectedIndex and maxScroll > 0 then
-    local selectedBottom = selectedIndex*rowHeight
-
-    if selectedBottom > visibleHeight then
-        initialScroll = math.min(maxScroll,selectedBottom-visibleHeight)
-    end
-end
-
-scrollFrame:SetVerticalScroll(initialScroll)
-scrollbar:SetValue(initialScroll)
-
-dropdownMenu:Show()
+    Addon.OptionsMenu.Open(button, items, {
+        width = math.max(220, button:GetWidth()), maxRows = LAYOUT.menuMaxRows, openUp = button.openUp,
+    })
 end
 
 local function applyTTSSettings()
-if FojjiCore.ApplyTTSSettings then
-    FojjiCore:ApplyTTSSettings()
-end
+    if FojjiCore.ApplyTTSSettings then
+        FojjiCore:ApplyTTSSettings()
+    end
 end
 
 local function getFavoriteVoiceCount()
-local count = 0
+    local count = 0
 
-for _,name in ipairs(FojjiCore.voicePackOrder or {}) do
-    if DB.ttsVoiceFavorites[name] then
-        count = count+1
+    for _,name in ipairs(FojjiCore.voicePackOrder or {}) do
+        if DB.ttsVoiceFavorites[name] then
+            count = count+1
+        end
     end
-end
 
-return count
+    return count
 end
 
 local function getSystemVoiceName(voiceID)
-for _,voice in ipairs(C_VoiceChat.GetTtsVoices() or {}) do
-    if voice.voiceID == voiceID then
-        return voice.name
+    for _,voice in ipairs(C_VoiceChat.GetTtsVoices() or {}) do
+        if voice.voiceID == voiceID then
+            return voice.name
+        end
     end
+
+    return "System Voice"
 end
 
-return "System Voice"
+local function getSoundChannelName(channel)
+    for _,data in ipairs(SOUND_CHANNELS) do
+        if data.value == channel then
+            return data.text
+        end
+    end
+
+    return "Master"
 end
 
 local function updateTTSControlState()
-if not controls.volume or not controls.rate then
-    return
-end
+    local custom = DB.ttsVoiceType == "custom"
 
-local custom = DB.ttsVoiceType == "custom"
+    controls.volume.container:SetAlpha(custom and 0.30 or 1)
+    controls.rate.container:SetAlpha(custom and 0.30 or 1)
+    controls.volume:EnableMouse(not custom)
+    controls.rate:EnableMouse(not custom)
 
-controls.volume.container:SetAlpha(custom and 0.30 or 1)
-controls.rate.container:SetAlpha(custom and 0.30 or 1)
+    controls.soundChannelLabel:SetShown(custom)
+    controls.soundChannel:SetShown(custom)
+    controls.soundChannelHint:SetShown(custom)
+    controls.soundChannelNote:SetShown(custom)
 
-controls.volume:EnableMouse(not custom)
-controls.rate:EnableMouse(not custom)
+    if custom then
+        local previous = controls.voiceWarning:IsShown() and controls.voiceWarning or controls.voice
+        local gap = controls.voiceWarning:IsShown() and 5 or 8
 
-if controls.customVoiceHint then
-    controls.customVoiceHint:SetShown(custom)
-end
+        anchorBelow(controls.soundChannelLabel,previous,gap)
+        anchorBelow(controls.soundChannel,controls.soundChannelLabel,5)
+        anchorBelow(controls.soundChannelHint,controls.soundChannel,4)
+        anchorBelow(controls.soundChannelNote,controls.soundChannelHint,3)
+        anchorBelow(controls.testLabel,controls.soundChannelNote,8)
+    else
+        anchorBelow(controls.testLabel,controls.voice,12)
+    end
+
+    anchorBelow(controls.testButton,controls.testLabel,5)
 end
 
 local function updateVoiceText()
-if not controls.voice then
-    return
-end
+    local favoriteCount = getFavoriteVoiceCount()
 
-local favoriteCount = getFavoriteVoiceCount()
-
-if DB.ttsRandomFavorites then
-    controls.voice.text:SetText("Random Favourites")
-
-    if controls.voiceWarning then
+    if DB.ttsRandomFavorites then
+        controls.voice.text:SetText("Random Favourites")
         controls.voiceWarning:SetShown(favoriteCount == 0)
-    end
-elseif DB.ttsVoiceType == "custom" and DB.ttsVoicePack then
-    controls.voice.text:SetText(DB.ttsVoicePack)
-
-    if controls.voiceWarning then
+    elseif DB.ttsVoiceType == "custom" and DB.ttsVoicePack then
+        controls.voice.text:SetText(DB.ttsVoicePack)
+        controls.voiceWarning:Hide()
+    else
+        controls.voice.text:SetText(getSystemVoiceName(DB.ttsVoiceID))
         controls.voiceWarning:Hide()
     end
-else
-    controls.voice.text:SetText(getSystemVoiceName(DB.ttsVoiceID))
 
-    if controls.voiceWarning then
-        controls.voiceWarning:Hide()
-    end
-end
-
-updateTTSControlState()
+    updateTTSControlState()
 end
 
 local function openVoiceMenu(button)
-local entries = {}
+    local entries = {}
 
--- System voices first
-for _,voiceData in ipairs(C_VoiceChat.GetTtsVoices() or {}) do
-    local voice = voiceData
-
-    entries[#entries+1] = {
-        text = voice.name,
-        selected = not DB.ttsRandomFavorites and DB.ttsVoiceType ~= "custom" and DB.ttsVoiceID == voice.voiceID,
-
-        onClick = function()
-            DB.ttsRandomFavorites = false
-            DB.ttsVoiceType = "system"
-            DB.ttsVoiceID = voice.voiceID
-            DB.ttsVoicePack = nil
-
-            applyTTSSettings()
-            updateVoiceText()
-        end,
-    }
-end
-
--- Random favourites after system voices
-entries[#entries+1] = {
-    text = "Random Favourites",
-    selected = DB.ttsRandomFavorites,
-
-    onClick = function()
-        DB.ttsRandomFavorites = true
-        DB.ttsVoiceType = "custom"
-
-        applyTTSSettings()
-        updateVoiceText()
-    end,
-}
-
--- Arabella first custom voice
-if FojjiCore.voicePacks and FojjiCore.voicePacks["Arabella"] then
-    local name = "Arabella"
-
-    entries[#entries+1] = {
-        text = name,
-        tag = "AI",
-        favorite = DB.ttsVoiceFavorites[name],
-        selected = not DB.ttsRandomFavorites and DB.ttsVoiceType == "custom" and DB.ttsVoicePack == name,
-
-        onFavorite = function(value)
-            DB.ttsVoiceFavorites[name] = value
-            updateVoiceText()
-        end,
-
-        onClick = function()
-            DB.ttsRandomFavorites = false
-            DB.ttsVoiceType = "custom"
-            DB.ttsVoicePack = name
-
-            applyTTSSettings()
-            updateVoiceText()
-        end,
-    }
-end
-
--- Remaining custom voices
-for _,voiceName in ipairs(FojjiCore.voicePackOrder or {}) do
-    local name = voiceName
-
-    if name ~= "Arabella" then
+    for _,voice in ipairs(C_VoiceChat.GetTtsVoices() or {}) do
         entries[#entries+1] = {
-            text = name,
-            tag = "AI",
-            favorite = DB.ttsVoiceFavorites[name],
-            selected = not DB.ttsRandomFavorites and DB.ttsVoiceType == "custom" and DB.ttsVoicePack == name,
-
-            onFavorite = function(value)
-                DB.ttsVoiceFavorites[name] = value
-                updateVoiceText()
-            end,
-
+            text = voice.name,
+            selected = not DB.ttsRandomFavorites and DB.ttsVoiceType ~= "custom" and DB.ttsVoiceID == voice.voiceID,
             onClick = function()
                 DB.ttsRandomFavorites = false
-                DB.ttsVoiceType = "custom"
-                DB.ttsVoicePack = name
-
+                DB.ttsVoiceType = "system"
+                DB.ttsVoiceID = voice.voiceID
+                DB.ttsVoicePack = nil
                 applyTTSSettings()
                 updateVoiceText()
             end,
         }
     end
+
+    entries[#entries+1] = {
+        text = "Random Favourites",
+        selected = DB.ttsRandomFavorites,
+        onClick = function()
+            DB.ttsRandomFavorites = true
+            DB.ttsVoiceType = "custom"
+            applyTTSSettings()
+            updateVoiceText()
+        end,
+    }
+
+    if FojjiCore.voicePacks and FojjiCore.voicePacks["Arabella"] then
+        local name = "Arabella"
+
+        entries[#entries+1] = {
+            text = name,
+            tag = "AI",
+            favorite = DB.ttsVoiceFavorites[name],
+            selected = not DB.ttsRandomFavorites and DB.ttsVoiceType == "custom" and DB.ttsVoicePack == name,
+            onFavorite = function(value)
+                DB.ttsVoiceFavorites[name] = value
+                updateVoiceText()
+            end,
+            onClick = function()
+                DB.ttsRandomFavorites = false
+                DB.ttsVoiceType = "custom"
+                DB.ttsVoicePack = name
+                applyTTSSettings()
+                updateVoiceText()
+            end,
+        }
+    end
+
+    for _,name in ipairs(FojjiCore.voicePackOrder or {}) do
+        if name ~= "Arabella" then
+            entries[#entries+1] = {
+                text = name,
+                tag = "AI",
+                favorite = DB.ttsVoiceFavorites[name],
+                selected = not DB.ttsRandomFavorites and DB.ttsVoiceType == "custom" and DB.ttsVoicePack == name,
+                onFavorite = function(value)
+                    DB.ttsVoiceFavorites[name] = value
+                    updateVoiceText()
+                end,
+                onClick = function()
+                    DB.ttsRandomFavorites = false
+                    DB.ttsVoiceType = "custom"
+                    DB.ttsVoicePack = name
+                    applyTTSSettings()
+                    updateVoiceText()
+                end,
+            }
+        end
+    end
+
+    createDropdownMenu(button,entries)
 end
 
-createDropdownMenu(button,entries)
+local function openSoundChannelMenu(button)
+    local entries = {}
+
+    for _,channelData in ipairs(SOUND_CHANNELS) do
+        local channel = channelData
+
+        entries[#entries+1] = {
+            text = channel.text,
+            selected = DB.ttsSoundChannel == channel.value,
+            onClick = function()
+                DB.ttsSoundChannel = channel.value
+                controls.soundChannel.text:SetText(channel.text)
+            end,
+        }
+    end
+
+    createDropdownMenu(button,entries)
 end
 
 local function getFonts()
-local fonts = {}
+    local fonts = {}
 
-for _,fontName in ipairs(SharedMedia:List("font") or {}) do
-    fonts[#fonts+1] = fontName
-end
+    for _,fontName in ipairs(SharedMedia:List("font") or {}) do
+        fonts[#fonts+1] = fontName
+    end
 
-table.sort(fonts,function(a,b)
-    return a:lower() < b:lower()
-end)
+    table.sort(fonts,function(a,b)
+        return a:lower() < b:lower()
+    end)
 
-return fonts
+    return fonts
 end
 
 local function getInstalledFontPatchGroups()
-local groups = {}
+    local groups = {}
 
-for _,groupName in ipairs(FojjiCore.fontPatchGroups or {}) do
-    local data = WeakAuras.GetData(groupName)
+    for _,groupName in ipairs(FojjiCore.fontPatchGroups or {}) do
+        local data = AuraAPI.GetData(groupName)
 
-    if data and data.controlledChildren then
-        groups[#groups+1] = groupName
+        if data and data.controlledChildren then
+            groups[#groups+1] = groupName
+        end
     end
-end
 
-return groups
+    return groups
 end
 
 local function openFontMenu(button)
-local entries = {}
+    local entries = {}
 
-for _,fontData in ipairs(getFonts()) do
-    local fontName = fontData
+    for _,fontName in ipairs(getFonts()) do
+        entries[#entries+1] = {
+            text = fontName,
+            selected = DB.fontName == fontName,
+            onClick = function()
+                DB.fontName = fontName
+                controls.font.text:SetText(fontName)
+            end,
+        }
+    end
 
-    entries[#entries+1] = {
-        text = fontName,
-        selected = DB.fontName == fontName,
-
-        onClick = function()
-            DB.fontName = fontName
-            controls.font.text:SetText(fontName)
-        end,
-    }
-end
-
-createDropdownMenu(button,entries)
+    createDropdownMenu(button,entries)
 end
 
 local function openFontTargetMenu(button)
-local entries = {
-    {
-        text = "Apply to All",
-        selected = DB.fontTarget == "ALL",
-
-        onClick = function()
-            DB.fontTarget = "ALL"
-            controls.fontTarget.text:SetText("Apply to All")
-        end,
-    },
-}
-
-for _,groupData in ipairs(getInstalledFontPatchGroups()) do
-    local groupName = groupData
-
-    entries[#entries+1] = {
-        text = groupName,
-        selected = DB.fontTarget == groupName,
-
-        onClick = function()
-            DB.fontTarget = groupName
-            controls.fontTarget.text:SetText(groupName)
-        end,
+    local entries = {
+        {
+            text = "Apply to All",
+            selected = DB.fontTarget == "ALL",
+            onClick = function()
+                DB.fontTarget = "ALL"
+                controls.fontTarget.text:SetText("Apply to All")
+            end,
+        },
     }
-end
 
-createDropdownMenu(button,entries)
+    for _,groupName in ipairs(getInstalledFontPatchGroups()) do
+        entries[#entries+1] = {
+            text = groupName,
+            selected = DB.fontTarget == groupName,
+            onClick = function()
+                DB.fontTarget = groupName
+                controls.fontTarget.text:SetText(groupName)
+            end,
+        }
+    end
+
+    createDropdownMenu(button,entries)
 end
 
 local function fadePage(page)
-page:SetAlpha(0)
-page:Show()
-UIFrameFadeIn(page,0.12,0,1)
+    page:SetAlpha(0)
+    page:Show()
+    UIFrameFadeIn(page,0.12,0,1)
 end
 
 local function selectTab(name)
-hideDropdown()
+    hideDropdown()
 
-for pageName,page in pairs(pages) do
-    if pageName == name then
-        if not page:IsShown() then
-            fadePage(page)
+    for pageName,page in pairs(pages) do
+        if pageName == name then
+            if not page:IsShown() then
+                fadePage(page)
+            end
+        else
+            page:Hide()
         end
-    else
-        page:Hide()
     end
-end
 
-for tabName,button in pairs(tabs) do
-    local active = tabName == name
+    for tabName,button in pairs(tabs) do
+        local active = tabName == name
 
-    button.indicator:SetShown(active)
-    button.glow:SetShown(active)
-
-    if active then
-        button.label:SetTextColor(color("white"))
-    else
-        button.label:SetTextColor(color("tab"))
+        button.indicator:SetShown(active)
+        button.glow:SetShown(active)
+        button.label:SetTextColor(color(active and "white" or "tab"))
     end
-end
 end
 
 local function updateMinimapVisibility()
-if DB.minimap.hide then
-    DBIcon:Hide("FojjiCore")
-else
-    DBIcon:Show("FojjiCore")
-end
+    if DB.minimap.hide then
+        DBIcon:Hide("FojjiCore")
+    else
+        DBIcon:Show("FojjiCore")
+    end
 
-if controls.minimap then
-    controls.minimap:SetChecked(not DB.minimap.hide)
-end
+    if controls.minimap then
+        controls.minimap:SetChecked(not DB.minimap.hide)
+    end
 end
 
 local function createMinimapButton()
-local launcher = LDB:NewDataObject("FojjiCore",{
-    type = "launcher",
-    text = "Fojji Core",
-    icon = ICON,
-    iconCoords = {0.04,0.96,0.04,0.96},
+    local launcher = LDB:NewDataObject("FojjiCore",{
+        type = "launcher",
+        text = "Fojji Core",
+        icon = ICON,
+        iconCoords = {0.04,0.96,0.04,0.96},
+        OnClick = function(_,button)
+            if button == "LeftButton" then
+                FojjiCore:ToggleOptions()
+            elseif button == "RightButton" then
+                DB.minimap.hide = true
+                updateMinimapVisibility()
+            end
+        end,
+        OnTooltipShow = function(tooltip)
+            tooltip:AddLine("|cff66b3ffFojji|cffff4444Core|r")
+            tooltip:AddLine((FojjiCore_Version or "Unknown"):gsub("%-forever%.","."),0.60,0.62,0.66)
+            tooltip:AddLine(" ")
+            tooltip:AddLine("Left-click to open settings",1,1,1)
+            tooltip:AddLine("Right-click to hide",0.65,0.67,0.71)
+        end,
+    })
 
-    OnClick = function(_,button)
-        if button == "LeftButton" then
-            FojjiCore:ToggleOptions()
-        elseif button == "RightButton" then
-            DB.minimap.hide = true
-            updateMinimapVisibility()
-        end
-    end,
-
-    OnTooltipShow = function(tooltip)
-        tooltip:AddLine("|cff4fc5ffFojji|cffff5b5bCore|r")
-        tooltip:AddLine("Version "..(FojjiCore_Version or "Unknown"),0.60,0.62,0.66)
-        tooltip:AddLine(" ")
-        tooltip:AddLine("Left-click to open settings",1,1,1)
-        tooltip:AddLine("Right-click to hide",0.65,0.67,0.71)
-    end,
-})
-
-DBIcon:Register("FojjiCore",launcher,DB.minimap)
-updateMinimapVisibility()
+    DBIcon:Register("FojjiCore",launcher,DB.minimap)
+    updateMinimapVisibility()
 end
 
 local function createOptions()
-frame = CreateFrame("Frame","FojjiCoreOptionsFrame",UIParent)
-frame:SetSize(LAYOUT.width,LAYOUT.height)
-frame:SetPoint("CENTER")
-frame:SetFrameStrata("DIALOG")
-frame:SetFrameLevel(100)
-frame:SetMovable(true)
-frame:EnableMouse(true)
-frame:RegisterForDrag("LeftButton")
-frame:SetScript("OnDragStart",frame.StartMoving)
-frame:SetScript("OnDragStop",frame.StopMovingOrSizing)
-frame:SetClampedToScreen(true)
-frame:Hide()
-
-local frameBG = createTexture(frame,"BACKGROUND","frame",0.99)
-frameBG:SetAllPoints()
-
-createBorder(frame,"accent",0.65)
-
-table.insert(UISpecialFrames,"FojjiCoreOptionsFrame")
-
-local header = CreateFrame("Frame",nil,frame)
-header:SetPoint("TOPLEFT",1,-1)
-header:SetPoint("TOPRIGHT",-1,-1)
-header:SetHeight(LAYOUT.headerHeight)
-
-local headerBG = createTexture(header,"BACKGROUND","header")
-headerBG:SetAllPoints()
-
-local logo = header:CreateTexture(nil,"ARTWORK")
-logo:SetSize(44,44)
-logo:SetPoint("LEFT",22,0)
-logo:SetTexture(ICON)
-
-local title = createText(header,"|cff4fc5ffFojji|cffff5b5bCore|r",17)
-title:SetPoint("LEFT",logo,"RIGHT",12,7)
-
-local version = createText(header,"Version "..(FojjiCore_Version or "Unknown"),10,"dim")
-version:SetPoint("LEFT",logo,"RIGHT",12,-10)
-
-local close = CreateFrame("Button",nil,header)
-close:SetSize(30,30)
-close:SetPoint("RIGHT",-18,0)
-
-close.bg = createTexture(close,"BACKGROUND","button")
-close.bg:SetAllPoints()
-
-close.border = createBorder(close)
-
-close.label = createText(close,"x",14)
-close.label:SetPoint("CENTER",0,1)
-
-close:SetScript("OnEnter",function(self)
-    self.bg:SetColorTexture(color("buttonHover"))
-    setBorderColor(self.border,"accent",0.75)
-    self.label:SetTextColor(color("white"))
-end)
-
-close:SetScript("OnLeave",function(self)
-    self.bg:SetColorTexture(color("button"))
-    setBorderColor(self.border,"border")
-    self.label:SetTextColor(color("text"))
-end)
-
-close:SetScript("OnClick",function()
-    hideDropdown()
+    frame = CreateFrame("Frame","FojjiCoreOptionsFrame",UIParent)
+    frame:SetScale(DB.optionsScale or 1)
+    frame:SetSize(math.min(1440,math.max(760,DB.windowWidth)),math.min(1080,math.max(540,DB.windowHeight)))
+    frame:SetResizable(true)
+    frame:SetResizeBounds(760,540,1440,1080)
+    frame:SetPoint("CENTER")
+    frame:SetFrameStrata("DIALOG")
+    frame:SetFrameLevel(100)
+    frame:SetMovable(true)
+    frame:EnableMouse(true)
+    frame:RegisterForDrag("LeftButton")
+    frame:SetScript("OnDragStart",frame.StartMoving)
+    frame:SetScript("OnDragStop",frame.StopMovingOrSizing)
+    frame:SetClampedToScreen(true)
     frame:Hide()
-end)
+    local grip = CreateFrame("Button",nil,frame)
+    grip:SetSize(22,22)
+    grip:SetFrameLevel(frame:GetFrameLevel()+20)
+    grip:SetPoint("BOTTOMRIGHT",-3,3)
+    grip:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
+    grip:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
+    grip:SetScript("OnMouseDown",function(_,button)
+        if button ~= "LeftButton" then return end
 
-local headerSeparator = createTexture(frame,"ARTWORK","borderDim")
-headerSeparator:SetPoint("TOPLEFT",1,-LAYOUT.headerHeight)
-headerSeparator:SetPoint("TOPRIGHT",-1,-LAYOUT.headerHeight)
-headerSeparator:SetHeight(1)
-
-local body = CreateFrame("Frame",nil,frame)
-body:SetPoint("TOPLEFT",1,-(LAYOUT.headerHeight+1))
-body:SetPoint("BOTTOMRIGHT",-1,1)
-
-local sidebar = CreateFrame("Frame",nil,body)
-sidebar:SetPoint("TOPLEFT")
-sidebar:SetPoint("BOTTOMLEFT")
-sidebar:SetWidth(LAYOUT.sidebarWidth)
-
-local sidebarBG = createTexture(sidebar,"BACKGROUND","sidebar")
-sidebarBG:SetAllPoints()
-
-local contentPanel = CreateFrame("Frame",nil,body)
-contentPanel:SetPoint("TOPLEFT",sidebar,"TOPRIGHT")
-contentPanel:SetPoint("BOTTOMRIGHT")
-
-local contentBG = createTexture(contentPanel,"BACKGROUND","content")
-contentBG:SetAllPoints()
-
-local divider = createTexture(body,"ARTWORK","border")
-divider:SetPoint("TOPLEFT",sidebar,"TOPRIGHT")
-divider:SetPoint("BOTTOMLEFT",sidebar,"BOTTOMRIGHT")
-divider:SetWidth(1)
-
-local content = CreateFrame("Frame",nil,contentPanel)
-content:SetPoint("TOPLEFT",LAYOUT.contentPadding,-30)
-content:SetPoint("BOTTOMRIGHT",-LAYOUT.contentPadding,30)
-
-local function createPage(name,titleText,description)
-local page = CreateFrame("Frame",nil,content)
-page:SetAllPoints()
-page:Hide()
-
-pages[name] = page
-createPageHeader(page,titleText,description)
-
-return page
-end
-
-local function createTab(name,text,y)
-local button = CreateFrame("Button",nil,sidebar)
-button:SetSize(LAYOUT.sidebarWidth,46)
-button:SetPoint("TOPLEFT",0,y)
-
-button.glow = createTexture(button,"BACKGROUND","accent",0.10)
-button.glow:SetAllPoints()
-button.glow:Hide()
-
-button.indicator = createTexture(button,"ARTWORK","accent")
-button.indicator:SetPoint("TOPLEFT")
-button.indicator:SetPoint("BOTTOMLEFT")
-button.indicator:SetWidth(3)
-button.indicator:Hide()
-
-button.label = createText(button,text,13,"tab")
-button.label:SetPoint("LEFT",26,0)
-
-button:SetScript("OnEnter",function(self)
-    if not self.indicator:IsShown() then
-        self.glow:SetColorTexture(1,1,1,0.025)
-        self.glow:Show()
-        self.label:SetTextColor(color("tabHover"))
+        local left,top = frame:GetLeft(),frame:GetTop()
+        frame:ClearAllPoints()
+        frame:SetPoint("TOPLEFT",UIParent,"BOTTOMLEFT",left,top)
+        frame:StartSizing("BOTTOMRIGHT")
+    end)
+    local function stopSizing()
+        frame:StopMovingOrSizing()
+        DB.windowWidth,DB.windowHeight = frame:GetWidth(),frame:GetHeight()
     end
-end)
+    grip:SetScript("OnMouseUp",stopSizing)
+    frame:SetScript("OnHide",function() stopSizing(); hideDropdown() end)
+    local frameBG = createTexture(frame,"BACKGROUND","frame",0.99)
+    frameBG:SetAllPoints()
 
-button:SetScript("OnLeave",function(self)
-    if not self.indicator:IsShown() then
-        self.glow:Hide()
-        self.label:SetTextColor(color("tab"))
-    else
-        self.glow:SetColorTexture(color("accent",0.10))
-    end
-end)
+    createBorder(frame,"border",0.85)
+    table.insert(UISpecialFrames,"FojjiCoreOptionsFrame")
 
-button:SetScript("OnClick",function()
-    selectTab(name)
-end)
+    local header = CreateFrame("Frame",nil,frame)
+    header:SetPoint("TOPLEFT",1,-1)
+    header:SetPoint("TOPRIGHT",-1,-1)
+    header:SetHeight(LAYOUT.headerHeight)
 
-tabs[name] = button
-end
+    local headerBG = createArtwork(header,"header-metal","BACKGROUND")
+    headerBG:SetAllPoints()
 
-local sidebarY = -26
+    local logo = header:CreateTexture(nil,"ARTWORK")
+    logo:SetSize(44,44)
+    logo:SetPoint("LEFT",22,0)
+    logo:SetTexture(ICON)
 
-local function addSidebarHeader(text)
-local label = createText(sidebar,text,10)
-label:SetTextColor(0.40,0.44,0.48)
-label:SetPoint("TOPLEFT",26,sidebarY)
+    local title = createText(header,"|cff66b3ffFojji|cffff4444Core|r",22)
+    title:SetPoint("LEFT",logo,"RIGHT",12,8)
 
-sidebarY = sidebarY-32
-end
+    local version = createText(header,(FojjiCore_Version or "Unknown"):gsub("%-forever%.","."),10,"dim")
+    version:SetPoint("LEFT",logo,"RIGHT",12,-10)
 
-local function addTab(name,text)
-createTab(name,text,sidebarY)
-sidebarY = sidebarY-46
-end
+    local atmosphere = createArtwork(header,"header-light","BACKGROUND",true)
+    atmosphere:SetAllPoints()
+    local edge = createArtwork(header,"header-edge","ARTWORK",true)
+    edge:SetPoint("BOTTOMLEFT");edge:SetPoint("BOTTOMRIGHT");edge:SetHeight(16)
+    local corner = createArtwork(header,"panel-corner","ARTWORK",true)
+    corner:SetSize(24,24);corner:SetPoint("TOPLEFT",2,-2);corner:SetAlpha(.5)
 
-addSidebarHeader("SETTINGS")
-addTab("general","General")
-addTab("tts","Text to Speech")
-addTab("font","Font")
+    local close = CreateFrame("Button",nil,header)
+    close:SetSize(30,30)
+    close:SetPoint("RIGHT",-18,0)
 
-sidebarY = sidebarY-24
+    close.bg = close:CreateTexture(nil,"BACKGROUND")
+    close.bg:SetAllPoints();close.bg:SetColorTexture(.08,.035,.04,.65)
+    close.border = createBorder(close,"warning",0.24)
+    close.icon = createArtwork(close,"close-cross","ARTWORK")
+    close.icon:SetSize(22,22);close.icon:SetPoint("CENTER");close.icon:SetVertexColor(.9,.43,.40)
+    close:SetScript("OnEnter",function(self)
+        self.bg:SetColorTexture(.24,.035,.045,.95)
+        setBorderColor(self.border,"warning",0.7)
+        self.icon:SetVertexColor(1,.8,.75)
+    end)
+    close:SetScript("OnLeave",function(self)
+        self.bg:SetColorTexture(.08,.035,.04,.65)
+        setBorderColor(self.border,"warning",0.24)
+        self.icon:SetVertexColor(.9,.43,.40)
+    end)
 
-addSidebarHeader("INFO")
-addTab("about","About")
-
-local generalPage = createPage(
-"general",
-"General",
-"Configure FojjiCore."
-)
-
-local minimapLabel = createSectionLabel(generalPage,"Minimap")
-minimapLabel:SetPoint("TOPLEFT",0,-84)
-
-controls.minimap = createCheckbox(
-generalPage,
-"Show minimap icon",
-function(checked)
-    DB.minimap.hide = not checked
-    updateMinimapVisibility()
-end
-)
-
-anchorBelow(controls.minimap,minimapLabel,10)
-controls.minimap:SetChecked(not DB.minimap.hide)
-
-local ttsPage = createPage(
-"tts",
-"Text to Speech",
-"Configure the shared voice used by Fojji WeakAuras."
-)
-
-controls.disableTTS = createCheckbox(
-ttsPage,
-"Disable all TTS",
-function(checked)
-    DB.disableTTS = checked
-end
-)
-
-controls.disableTTS:SetPoint("TOPLEFT",0,-76)
-controls.disableTTS:SetChecked(DB.disableTTS)
-
-controls.volume = createSlider(ttsPage,"Volume",0,100,1)
-anchorBelow(controls.volume.container,controls.disableTTS,14)
-
-controls.volume:SetValue(DB.ttsVolume)
-controls.volume.valueText:SetText(DB.ttsVolume)
-
-controls.volume:SetScript("OnValueChanged",function(self,value)
-    value = math.floor(value+0.5)
-
-    DB.ttsVolume = value
-    self.valueText:SetText(value)
-
-    applyTTSSettings()
-end)
-
-controls.rate = createSlider(ttsPage,"Speech Rate",-10,10,0.1)
-anchorBelow(controls.rate.container,controls.volume.container,6)
-
-controls.rate:SetValue(DB.ttsRate)
-controls.rate.valueText:SetText(string.format("%.1f",DB.ttsRate))
-
-controls.rate:SetScript("OnValueChanged",function(self,value)
-    value = math.floor(value*10+0.5)/10
-
-    DB.ttsRate = value
-    self.valueText:SetText(string.format("%.1f",value))
-
-    applyTTSSettings()
-end)
-
-local voiceLabel = createSectionLabel(ttsPage,"Voice")
-anchorBelow(voiceLabel,controls.rate.container,8)
-
-controls.voice = createDropdownButton(ttsPage)
-anchorBelow(controls.voice,voiceLabel,8)
-
-controls.voice:SetScript("OnClick",function(self)
-    if dropdownMenu and dropdownMenu.owner == self and dropdownMenu:IsShown() then
+    close:SetScript("OnClick",function()
         hideDropdown()
-    else
-        openVoiceMenu(self)
+        frame:Hide()
+    end)
+
+    local headerSeparator = createTexture(frame,"ARTWORK","borderDim")
+    headerSeparator:SetPoint("TOPLEFT",1,-LAYOUT.headerHeight)
+    headerSeparator:SetPoint("TOPRIGHT",-1,-LAYOUT.headerHeight)
+    headerSeparator:SetHeight(1)
+
+    local body = CreateFrame("Frame",nil,frame)
+    body:SetPoint("TOPLEFT",1,-(LAYOUT.headerHeight+1))
+    body:SetPoint("BOTTOMRIGHT",-1,1)
+
+    local sidebar = CreateFrame("Frame",nil,body)
+    sidebar:SetPoint("TOPLEFT")
+    sidebar:SetPoint("BOTTOMLEFT")
+    sidebar:SetWidth(LAYOUT.sidebarWidth)
+
+    local sidebarBG = createTexture(sidebar,"BACKGROUND","sidebar")
+    sidebarBG:SetAllPoints()
+
+    local contentPanel = CreateFrame("Frame",nil,body)
+    contentPanel:SetPoint("TOPLEFT",sidebar,"TOPRIGHT")
+    contentPanel:SetPoint("BOTTOMRIGHT")
+
+    local contentBG = createTexture(contentPanel,"BACKGROUND","content")
+    contentBG:SetAllPoints()
+    local grain = createArtwork(contentPanel,"panel-grain","BACKGROUND")
+    grain:SetAllPoints()
+    local contentMark = contentPanel:CreateTexture(nil,"BACKGROUND",nil,2)
+    contentMark:SetTexture(ICON);contentMark:SetSize(180,180)
+    contentMark:SetPoint("BOTTOMRIGHT",-30,24);contentMark:SetAlpha(0.018)
+    local lowerEdge = createTexture(contentPanel,"BORDER","accent",0.3)
+    lowerEdge:SetPoint("BOTTOMLEFT");lowerEdge:SetPoint("BOTTOMRIGHT");lowerEdge:SetHeight(1)
+
+    local divider = createTexture(body,"ARTWORK","border")
+    divider:SetPoint("TOPLEFT",sidebar,"TOPRIGHT")
+    divider:SetPoint("BOTTOMLEFT",sidebar,"BOTTOMRIGHT")
+    divider:SetWidth(1)
+
+    local content = CreateFrame("Frame",nil,contentPanel)
+    content:SetPoint("TOPLEFT",LAYOUT.contentPadding,-24)
+    content:SetPoint("BOTTOMRIGHT",-LAYOUT.contentPadding,26)
+
+    local function createPage(name,titleText)
+        local page = CreateFrame("Frame",nil,content)
+        page:SetAllPoints()
+        page:Hide()
+        pages[name] = page
+        createPageHeader(page,titleText)
+        return page
     end
-end)
 
-controls.voiceWarning = createText(
-ttsPage,
-"No favourite voices selected. Add favourites from the Voice menu.",
-10,
-"warning"
-)
+    local function createTab(name,text,y)
+        local button = CreateFrame("Button",nil,sidebar)
+        button:SetSize(LAYOUT.sidebarWidth,32)
+        button:SetPoint("TOPLEFT",0,y)
 
-anchorBelow(controls.voiceWarning,controls.voice,7)
-controls.voiceWarning:Hide()
+        button.glow = createTexture(button,"BACKGROUND","accent",0.10)
+        button.glow:SetAllPoints()
+        button.glow:Hide()
 
-controls.customVoiceHint = createText(
-ttsPage,
-"Custom Voices use your in-game Master Volume settings",
-10,
-"dim"
-)
+        button.indicator = createTexture(button,"ARTWORK","accent")
+        button.indicator:SetPoint("TOPLEFT")
+        button.indicator:SetPoint("BOTTOMLEFT")
+        button.indicator:SetWidth(3)
+        button.indicator:Hide()
 
-anchorBelow(controls.customVoiceHint,controls.voiceWarning,7)
+        button.label = createText(button,text,13,"tab")
+        button.label:SetPoint("LEFT",26,0)
 
-local testLabel = createSectionLabel(ttsPage,"Test Voice")
-anchorBelow(testLabel,controls.customVoiceHint,18)
-
-local testButton = createButton(ttsPage,"Play Test TTS",140)
-anchorBelow(testButton,testLabel,8)
-
-testButton:SetScript("OnClick",function()
-    FojjiCore:Speak(TEST_PHRASES[math.random(#TEST_PHRASES)])
-end)
-
-updateVoiceText()
-
-local fontPage = createPage(
-"font",
-"Font",
-"Apply the selected Font to your Fojji WeakAuras."
-)
-
-local fontLabel = createSectionLabel(fontPage,"Font")
-fontLabel:SetPoint("TOPLEFT",0,-84)
-
-controls.font = createDropdownButton(fontPage)
-controls.font.text:SetText(DB.fontName)
-anchorBelow(controls.font,fontLabel,8)
-
-controls.font:SetScript("OnClick",function(self)
-    if dropdownMenu and dropdownMenu.owner == self and dropdownMenu:IsShown() then
-        hideDropdown()
-    else
-        openFontMenu(self)
-    end
-end)
-
-local targetLabel = createSectionLabel(fontPage,"Apply To")
-anchorBelow(targetLabel,controls.font,18)
-
-controls.fontTarget = createDropdownButton(fontPage)
-anchorBelow(controls.fontTarget,targetLabel,8)
-
-if DB.fontTarget == "ALL" then
-    controls.fontTarget.text:SetText("Apply to All")
-else
-    controls.fontTarget.text:SetText(DB.fontTarget)
-end
-
-controls.fontTarget:SetScript("OnClick",function(self)
-    if dropdownMenu and dropdownMenu.owner == self and dropdownMenu:IsShown() then
-        hideDropdown()
-    else
-        openFontTargetMenu(self)
-    end
-end)
-
-controls.applyFont = createButton(fontPage,"Apply Font",140)
-anchorBelow(controls.applyFont,controls.fontTarget,18)
-
-controls.applyFont.confirming = false
-controls.applyFont.confirmationID = 0
-
-controls.applyFont:SetScript("OnClick",function(self)
-    if not self.confirming then
-        self.confirming = true
-        self.confirmationID = self.confirmationID+1
-
-        local confirmationID = self.confirmationID
-
-        self.label:SetText("Are you sure?")
-
-        C_Timer.After(5,function()
-            if self.confirming and self.confirmationID == confirmationID then
-                self.confirming = false
-                self.label:SetText("Apply Font")
+        button:SetScript("OnEnter",function(self)
+            if not self.indicator:IsShown() then
+                self.glow:SetColorTexture(1,1,1,0.025)
+                self.glow:Show()
+                self.label:SetTextColor(color("tabHover"))
             end
         end)
 
-        return
+        button:SetScript("OnLeave",function(self)
+            if not self.indicator:IsShown() then
+                self.glow:Hide()
+                self.label:SetTextColor(color("tab"))
+            else
+                self.glow:SetColorTexture(color("accent",0.10))
+            end
+        end)
+
+        button:SetScript("OnClick",function()
+            selectTab(name)
+        end)
+
+        tabs[name] = button
     end
 
-    self.confirming = false
-    self.confirmationID = self.confirmationID+1
-    self.label:SetText("Apply Font")
+    local sidebarY = -18
 
-    if DB.fontTarget == "ALL" then
-        FojjiCore:PatchFontForAll(DB.fontName)
-    else
-        FojjiCore:PatchFontForGroup(DB.fontTarget,DB.fontName)
+    local function addSidebarHeader(text)
+        local label = createText(sidebar,text,10)
+        label:SetTextColor(0.40,0.44,0.48)
+        label:SetPoint("TOPLEFT",26,sidebarY)
+        sidebarY = sidebarY-22
     end
-end)
 
-local fontHint = createText(
-fontPage,
-"A /reload is required after applying a new font.",
-10,
-"dim"
-)
+    local function addTab(name,text)
+        createTab(name,text,sidebarY)
+        sidebarY = sidebarY-34
+    end
 
-anchorBelow(fontHint,controls.applyFont,8)
+    if Addon.CreateSpeedrunPage then
+        addSidebarHeader("RAID TOOLS")
+        addTab("speedrun","Speedrun Timer")
+        sidebarY = sidebarY-18
+    end
+    addSidebarHeader("FOJJI "..auraName:upper())
+    addTab("tts","Audio & Voices")
+    addTab("font","Aura Fonts")
+    sidebarY = sidebarY-18
+    addSidebarHeader("SETTINGS")
+    addTab("general","Appearance")
+    addTab("about","About")
 
-local aboutPage = createPage(
-"about",
-"About",
-"Information and links for FojjiCore."
-)
+    if Addon.CreateSpeedrunPage then
+        local speedrunPage = createPage("speedrun","Speedrun Timer")
+        local built, buildError = pcall(Addon.CreateSpeedrunPage, speedrunPage, {
+            Button = createButton, Text = createText, Texture = createTexture, Font = FONT,
+            Checkbox = createCheckbox, Scroll = createScrollFrame,
+            Menu = createDropdownMenu, DropdownButton = createDropdownButton,
+            Panel = function(parent)
+                local bg = createTexture(parent,"BACKGROUND","field")
+                bg:SetAllPoints()
+                createBorder(parent,"borderDim")
+            end,
+        })
+        if not built then Addon.Print("Speedrun settings page failed to build: "..tostring(buildError)) end
+    end
 
-local aboutLogo = aboutPage:CreateTexture(nil,"ARTWORK")
-aboutLogo:SetSize(68,68)
-aboutLogo:SetPoint("TOPLEFT",0,-82)
-aboutLogo:SetTexture(ICON)
+    local generalPage = createPage("general","Appearance")
 
-local aboutTitle = createText(
-aboutPage,
-"|cff4fc5ffFojji|cffff5b5bCore|r",
-19
-)
+    local minimapLabel = createSectionLabel(generalPage,"Minimap")
+    minimapLabel:SetPoint("TOPLEFT",0,-84)
 
-aboutTitle:SetPoint("LEFT",aboutLogo,"RIGHT",16,0)
+    controls.minimap = createCheckbox(generalPage,"Show minimap icon",function(checked)
+        DB.minimap.hide = not checked
+        updateMinimapVisibility()
+    end)
 
-local addonInfoLabel = createSectionLabel(aboutPage,"Addon Information")
-anchorBelow(addonInfoLabel,aboutLogo,20)
+    anchorBelow(controls.minimap,minimapLabel,10)
+    controls.minimap:SetChecked(not DB.minimap.hide)
 
-local interfaceVersion = select(4,GetBuildInfo())
+    local themeLabel = createSectionLabel(generalPage,"Window theme")
+    themeLabel:SetPoint("TOPLEFT",0,-164)
+    local themeMenu = createDropdownButton(generalPage)
+    anchorBelow(themeMenu,themeLabel,10)
+    themeMenu.text:SetText((THEMES[DB.theme] or THEMES.ember).name)
+    local function chooseTheme(button)
+        local entries = {}
+        for _, key in ipairs(THEME_ORDER) do
+            local themeKey = key
+            entries[#entries+1] = { text = THEMES[key].name, onClick = function()
+                applyTheme(themeKey)
+                themeMenu.text:SetText(THEMES[themeKey].name)
+            end }
+        end
+        createDropdownMenu(button,entries)
+    end
+    themeMenu:SetScript("OnClick",chooseTheme)
+    local resetWindow = createButton(generalPage,"Reset window",160)
+    resetWindow:SetPoint("TOPLEFT",0,-270)
+    resetWindow:SetScript("OnClick",function()
+        frame:ClearAllPoints(); frame:SetPoint("CENTER")
+        frame:SetSize(LAYOUT.width,LAYOUT.height)
+        DB.windowWidth,DB.windowHeight = LAYOUT.width,LAYOUT.height
+    end)
+    local resizeHint = createText(generalPage,"Drag the bottom-right corner to resize. Your size and theme are saved.",12,"dim")
+    resizeHint:SetPoint("TOPLEFT",0,-320)
 
-local info = createText(
-aboutPage,
-"FojjiCore Version:  |cffffffff"..(FojjiCore_Version or "Unknown")..
-"|r\nInterface Version:  |cffffffff"..tostring(interfaceVersion or "Unknown").."|r",
-12
-)
+    local scaleLabel = createSectionLabel(generalPage,"Options window scale")
+    scaleLabel:SetPoint("TOPLEFT",0,-360)
+    local scaleMenu = createDropdownButton(generalPage)
+    scaleMenu:SetWidth(180)
+    anchorBelow(scaleMenu,scaleLabel,10)
+    local function setOptionsScale(value)
+        DB.optionsScale = value
+        scaleMenu.text:SetText(("%d%%"):format(math.floor(value*100+0.5)))
+        frame:SetScale(value)
+    end
+    scaleMenu.text:SetText(("%d%%"):format(math.floor(DB.optionsScale*100+0.5)))
+    scaleMenu:SetScript("OnClick",function(self)
+        local entries = {}
+        for percent = 60,140,5 do
+            local value = percent/100
+            entries[#entries+1] = {
+                text = percent.."%", selected = math.abs(DB.optionsScale-value)<0.001,
+                onClick = function() setOptionsScale(value) end,
+            }
+        end
+        createDropdownMenu(self,entries)
+    end)
+    local resetScale = createButton(generalPage,"Reset to 100%",140)
+    resetScale:SetPoint("LEFT",scaleMenu,"RIGHT",10,0)
+    resetScale:SetScript("OnClick",function()
+        hideDropdown()
+        setOptionsScale(1)
+    end)
 
-info:SetTextColor(0.68,0.70,0.74)
-info:SetJustifyH("LEFT")
-info:SetSpacing(7)
+    local ttsPage = createPage("tts","Text to Speech")
+    local ttsDescription = createText(ttsPage,"Configure Text to Speech settings for use with Fojji "..auraName..".",12,"dim")
+    ttsDescription:SetPoint("TOPLEFT",0,-50)
 
-anchorBelow(info,addonInfoLabel,10)
+    controls.disableTTS = createCheckbox(ttsPage,"Disable all TTS",function(checked)
+        DB.disableTTS = checked
+    end)
 
-local linksLabel = createSectionLabel(aboutPage,"Links")
-anchorBelow(linksLabel,info,28)
+    controls.disableTTS:SetPoint("TOPLEFT",0,-76)
+    controls.disableTTS:SetChecked(DB.disableTTS)
 
-local function createLink(titleText,url,previous)
-local button = CreateFrame("Button",nil,aboutPage)
-button:SetSize(270,24)
+    controls.volume = createSlider(ttsPage,"Volume",0,100,1)
+    anchorBelow(controls.volume.container,controls.disableTTS,10)
+    controls.volume:SetValue(DB.ttsVolume)
+    controls.volume.valueText:SetText(DB.ttsVolume)
 
-anchorBelow(button,previous,8)
+    controls.volume:SetScript("OnValueChanged",function(self,value)
+        value = math.floor(value+0.5)
+        DB.ttsVolume = value
+        self.valueText:SetText(value)
+        applyTTSSettings()
+    end)
 
-local text = createText(button,titleText,12,"accent")
-text:SetPoint("LEFT")
+    controls.rate = createSlider(ttsPage,"Speech Rate",-10,10,0.1)
+    anchorBelow(controls.rate.container,controls.volume.container,2)
+    controls.rate:SetValue(DB.ttsRate)
+    controls.rate.valueText:SetText(string.format("%.1f",DB.ttsRate))
 
-local hint = createText(button,"Click to copy",10)
-hint:SetTextColor(0.42,0.45,0.49)
-hint:SetPoint("LEFT",text,"RIGHT",12,0)
+    controls.rate:SetScript("OnValueChanged",function(self,value)
+        value = math.floor(value*10+0.5)/10
+        DB.ttsRate = value
+        self.valueText:SetText(string.format("%.1f",value))
+        applyTTSSettings()
+    end)
 
-button:SetScript("OnEnter",function()
-    text:SetTextColor(0.52,0.84,1)
-    hint:SetTextColor(0.62,0.65,0.69)
-end)
+    local voiceLabel = createSectionLabel(ttsPage,"Voice")
+    anchorBelow(voiceLabel,controls.rate.container,2)
 
-button:SetScript("OnLeave",function()
-    text:SetTextColor(color("accent"))
-    hint:SetTextColor(0.42,0.45,0.49)
-end)
+    controls.voice = createDropdownButton(ttsPage)
+    anchorBelow(controls.voice,voiceLabel,5)
 
-button:SetScript("OnClick",function()
-    ChatFrame_OpenChat(url)
-end)
+    controls.voice:SetScript("OnClick",function(self)
+        if Addon.OptionsMenu.IsOpen(self) then
+            hideDropdown()
+        else
+            openVoiceMenu(self)
+        end
+    end)
 
-return button
-end
+    controls.voiceWarning = createText(ttsPage,"No favourite voices selected. Add favourites from the Voice menu.",10,"warning")
+    anchorBelow(controls.voiceWarning,controls.voice,4)
+    controls.voiceWarning:Hide()
 
-local discord = createLink(
-"Fojji Discord",
-"https://discord.gg/fojjiwow",
-linksLabel
-)
+    controls.soundChannelLabel = createSectionLabel(ttsPage,"Sound Channel")
 
-local patreon = createLink(
-"Patreon",
-"https://www.patreon.com/c/fojjiwow",
-discord
-)
+    controls.soundChannel = createDropdownButton(ttsPage)
+    controls.soundChannel.text:SetText(getSoundChannelName(DB.ttsSoundChannel))
 
-createLink(
-"Twitch",
-"https://twitch.tv/fojjiwow",
-patreon
-)
+    controls.soundChannel:SetScript("OnClick",function(self)
+        if Addon.OptionsMenu.IsOpen(self) then
+            hideDropdown()
+        else
+            openSoundChannelMenu(self)
+        end
+    end)
 
-selectTab("general")
+	controls.soundChannelHint = createText(ttsPage,"Choose which sound channel the AI Voice uses.",10,"dim")
+	controls.soundChannelNote = createText(ttsPage,"Note: Non-Master channels cannot play louder than your Master Volume setting.",10,"dim")
+
+    controls.testLabel = createSectionLabel(ttsPage,"Test Voice")
+    controls.testButton = createButton(ttsPage,"Play Test TTS",140)
+
+    controls.testButton:SetScript("OnClick",function()
+        FojjiCore:Speak(TEST_PHRASES[math.random(#TEST_PHRASES)])
+    end)
+
+    updateVoiceText()
+
+    local fontPage = createPage("font","Font")
+    local fontDescription = createText(fontPage,"Apply a font to your Fojji "..auraName..".",12,"dim")
+    fontDescription:SetPoint("TOPLEFT",0,-50)
+
+    local fontLabel = createSectionLabel(fontPage,"Font")
+    fontLabel:SetPoint("TOPLEFT",0,-84)
+
+    controls.font = createDropdownButton(fontPage)
+    controls.font.text:SetText(DB.fontName)
+    anchorBelow(controls.font,fontLabel,8)
+
+    controls.font:SetScript("OnClick",function(self)
+        if Addon.OptionsMenu.IsOpen(self) then
+            hideDropdown()
+        else
+            openFontMenu(self)
+        end
+    end)
+
+    local targetLabel = createSectionLabel(fontPage,"Apply To")
+    anchorBelow(targetLabel,controls.font,18)
+
+    controls.fontTarget = createDropdownButton(fontPage)
+    anchorBelow(controls.fontTarget,targetLabel,8)
+    controls.fontTarget.text:SetText(DB.fontTarget == "ALL" and "Apply to All" or DB.fontTarget)
+
+    controls.fontTarget:SetScript("OnClick",function(self)
+        if Addon.OptionsMenu.IsOpen(self) then
+            hideDropdown()
+        else
+            openFontTargetMenu(self)
+        end
+    end)
+
+    controls.applyFont = createButton(fontPage,"Apply Font",140)
+    anchorBelow(controls.applyFont,controls.fontTarget,18)
+    controls.applyFont.confirming = false
+    controls.applyFont.confirmationID = 0
+
+    controls.applyFont:SetScript("OnClick",function(self)
+        if not self.confirming then
+            self.confirming = true
+            self.confirmationID = self.confirmationID+1
+
+            local confirmationID = self.confirmationID
+
+            self.label:SetText("Are you sure?")
+
+            C_Timer.After(5,function()
+                if self.confirming and self.confirmationID == confirmationID then
+                    self.confirming = false
+                    self.label:SetText("Apply Font")
+                end
+            end)
+
+            return
+        end
+
+        self.confirming = false
+        self.confirmationID = self.confirmationID+1
+        self.label:SetText("Apply Font")
+
+        if DB.fontTarget == "ALL" then
+            FojjiCore:PatchFontForAll(DB.fontName)
+        else
+            FojjiCore:PatchFontForGroup(DB.fontTarget,DB.fontName)
+        end
+    end)
+
+    local fontHint = createText(fontPage,"A /reload is required after applying a new font.",10,"dim")
+    anchorBelow(fontHint,controls.applyFont,8)
+
+    local aboutPage = createPage("about","About")
+
+    local aboutLogo = aboutPage:CreateTexture(nil,"ARTWORK")
+    aboutLogo:SetSize(68,68)
+    aboutLogo:SetPoint("TOPLEFT",0,-82)
+    aboutLogo:SetTexture(ICON)
+
+    local aboutTitle = createText(aboutPage,"|cff66b3ffFojji|cffff4444Core|r",19)
+    aboutTitle:SetPoint("LEFT",aboutLogo,"RIGHT",16,0)
+
+    local addonInfoLabel = createSectionLabel(aboutPage,"Addon Information")
+    anchorBelow(addonInfoLabel,aboutLogo,20)
+
+    local interfaceVersion = select(4,GetBuildInfo())
+    local info = createText(aboutPage,"FojjiCore Version:  |cffffffff"..(FojjiCore_Version or "Unknown").."|r\nInterface Version:  |cffffffff"..tostring(interfaceVersion or "Unknown").."|r",12)
+    info:SetTextColor(0.68,0.70,0.74)
+    info:SetJustifyH("LEFT")
+    info:SetSpacing(7)
+
+    anchorBelow(info,addonInfoLabel,10)
+
+    local linksLabel = createSectionLabel(aboutPage,"Links")
+    anchorBelow(linksLabel,info,28)
+
+    local function createLink(titleText,url,previous)
+        local button = CreateFrame("Button",nil,aboutPage)
+        button:SetSize(270,24)
+        anchorBelow(button,previous,8)
+
+        local text = createText(button,titleText,12,"accent")
+        text:SetPoint("LEFT")
+
+        local hint = createText(button,"Click to copy",10)
+        hint:SetTextColor(0.42,0.45,0.49)
+        hint:SetPoint("LEFT",text,"RIGHT",12,0)
+
+        button:SetScript("OnEnter",function()
+            text:SetTextColor(0.52,0.84,1)
+            hint:SetTextColor(0.62,0.65,0.69)
+        end)
+
+        button:SetScript("OnLeave",function()
+            text:SetTextColor(color("accent"))
+            hint:SetTextColor(0.42,0.45,0.49)
+        end)
+
+        button:SetScript("OnClick",function()
+            ChatFrame_OpenChat(url)
+        end)
+
+        return button
+    end
+
+    local discord = createLink("Fojji Discord","https://discord.gg/fojjiwow",linksLabel)
+    local patreon = createLink("Patreon","https://www.patreon.com/c/fojjiwow",discord)
+    createLink("Twitch","https://twitch.tv/fojjiwow",patreon)
+
+    selectTab(defaultTab)
 end
 
 local function validateFontTarget()
-if DB.fontTarget == "ALL" then
-    return
+    if DB.fontTarget == "ALL" then
+        return
+    end
+
+    local data = AuraAPI.GetData(DB.fontTarget)
+
+    if not data or not data.controlledChildren then
+        DB.fontTarget = "ALL"
+    end
 end
 
-local data = WeakAuras.GetData(DB.fontTarget)
+function FojjiCore:ToggleOptions(tab)
+    if not frame then
+        return
+    end
 
-if not data or not data.controlledChildren then
-    DB.fontTarget = "ALL"
-end
-end
+    if frame:IsShown() and tab and pages[tab] then
+        selectTab(tab)
+        return
+    end
 
-function FojjiCore:ToggleOptions()
-if not frame then
-    return
-end
+    if frame:IsShown() then
+        hideDropdown()
+        frame:Hide()
+        return
+    end
 
-if frame:IsShown() then
+    validateFontTarget()
+    applyTTSSettings()
+
+    controls.volume:SetValue(DB.ttsVolume)
+    controls.rate:SetValue(DB.ttsRate)
+    controls.soundChannel.text:SetText(getSoundChannelName(DB.ttsSoundChannel))
+    controls.minimap:SetChecked(not DB.minimap.hide)
+    controls.disableTTS:SetChecked(DB.disableTTS)
+    controls.font.text:SetText(DB.fontName)
+    controls.fontTarget.text:SetText(DB.fontTarget == "ALL" and "Apply to All" or DB.fontTarget)
+
+    updateVoiceText()
+    updateMinimapVisibility()
+
     hideDropdown()
-    frame:Hide()
-    return
-end
-validateFontTarget()
-applyTTSSettings()
+    selectTab((tab and pages[tab]) and tab or defaultTab)
 
-controls.volume:SetValue(DB.ttsVolume)
-controls.rate:SetValue(DB.ttsRate)
-
-controls.minimap:SetChecked(not DB.minimap.hide)
-controls.disableTTS:SetChecked(DB.disableTTS)
-
-controls.font.text:SetText(DB.fontName)
-
-if DB.fontTarget == "ALL" then
-    controls.fontTarget.text:SetText("Apply to All")
-else
-    controls.fontTarget.text:SetText(DB.fontTarget)
-end
-
-updateVoiceText()
-updateMinimapVisibility()
-
-hideDropdown()
-selectTab("general")
-
-frame:SetAlpha(0)
-frame:Show()
-
-UIFrameFadeIn(frame,0.15,0,1)
+    frame:SetAlpha(0)
+    frame:Show()
+    UIFrameFadeIn(frame,0.15,0,1)
 end
 
 SLASH_FOJJICORE1 = "/fojjicore"
@@ -1422,8 +1356,17 @@ loader:SetScript("OnEvent",function(self,_,addonName)
 
     migrateDB()
     applyDefaults(DB,DEFAULTS)
+    if not DB.optionsRevision or DB.optionsRevision < 9 then
+        DB.theme = "ember"
+        DB.optionsRevision = 9
+    end
+    if DB.optionsRevision < 10 then
+        DB.windowWidth,DB.windowHeight = 880,620
+        DB.optionsRevision = 10
+    end
     applyTTSSettings()
-
+    DB.windowScale = nil
+    applyTheme(DB.theme)
     createOptions()
     createMinimapButton()
 end)

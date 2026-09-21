@@ -1,10 +1,14 @@
+-- WeakAuras hooks: WA_FJI_OPTIONS_OPENED(), WA_FJI_ABT_TOGGLE() via /ab
+-- FojjiCore:Speak(text)
+-- FojjiCore:PatchFontForGroup(groupName, fontName), FojjiCore:PatchFontForAll(fontName)
+
 local SharedMedia = LibStub("LibSharedMedia-3.0")
 
 FojjiCore = FojjiCore or {}
-FojjiCore_Version = "2.0.2"
+FojjiCore_Version = "2.0.8"
 
 FojjiCore.fontPatchGroups = {
-    -- Class UIs
+
     "Fojji - Druid UI [TBC]",
     "Fojji - Hunter UI [TBC]",
     "Fojji - Mage UI [TBC]",
@@ -15,7 +19,6 @@ FojjiCore.fontPatchGroups = {
     "Fojji - Warlock UI [TBC]",
     "Fojji - Warrior UI [TBC]",
 
-    -- Raiding Packs
     "Fojji - [T4] Raiding Pack [TBC]",
     "Fojji - [T5] Raid Frames",
     "Fojji - [T5] Raiding Pack",
@@ -28,18 +31,15 @@ FojjiCore.fontPatchGroups = {
     "Fojji - Karazhan [TBC][Raid Frames]",
     "Fojji - Raid Pack Anchors [Classic]",
 
-    -- Dungeon Packs
     "Fojji - Dungeon Pack [TBC][P1]",
     "Fojji - Dungeon Pack [TBC][P2]",
     "Fojji - Dungeon Pack [TBC][Party Frames]",
 
-    -- Core / Essentials
     "Fojji - API Role [TBC]",
     "Fojji - Essentials [TBC]",
     "Numen - Core [TBC]",
     "Numen - Cooldown Tracker [TBC]",
 
-    -- Raid / Utility
     "Fojji - Arcane Bomb Suite [TBC]",
     "Fojji - AutoMarker [TBC]",
     "Fojji - Boss Kill Times [TBC]",
@@ -70,9 +70,32 @@ FojjiCore.fontPatchGroups = {
     "Fojji - Pull & Break Timers",
 }
 
+local SOUND_CHANNELS = {
+    Master = true,
+    SFX = true,
+    Music = true,
+    Ambience = true,
+    Dialog = true,
+}
+
 local function getFirstVoiceID()
     local voices = C_VoiceChat.GetTtsVoices() or {}
     return voices[1] and voices[1].voiceID
+end
+
+local function getSoundChannel()
+    local DB = FojjiCoreDB
+    local channel = DB and DB.ttsSoundChannel or "Master"
+
+    if channel == "Sound Effects" then
+        channel = "SFX"
+    end
+
+    if not SOUND_CHANNELS[channel] then
+        channel = "Master"
+    end
+
+    return channel
 end
 
 local function getVoicePackFile(text)
@@ -128,7 +151,7 @@ function FojjiCore:Speak(text)
         local file = getVoicePackFile(text)
 
         if file then
-            local willPlay = PlaySoundFile(file,"Master")
+            local willPlay = PlaySoundFile(file,getSoundChannel())
 
             if willPlay then
                 return true
