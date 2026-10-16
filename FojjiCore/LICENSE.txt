@@ -1,0 +1,18 @@
+FojjiCore - Licence
+
+Copyright (c) 2026 Fojji. All rights reserved.
+
+FojjiCore and FojjiCore - Voice Packs, including all code, artwork, icons,
+textures, voice recordings and other files in these addons, are the work of
+Fojji and its contributors, except for third-party libraries and game assets,
+which remain the property of their owners and keep their own licences.
+
+You may download, install and use these addons for your own personal play.
+
+You may not, without written permission from Fojji:
+  - copy, modify, re-upload or redistribute these addons or any part of them;
+  - reuse their code, artwork, icons or voice recordings in another addon,
+    WeakAura, UI pack or any other project;
+  - sell, or otherwise profit from, these addons or any part of them.
+
+Everything not expressly allowed above is reserved by the copyright holder.

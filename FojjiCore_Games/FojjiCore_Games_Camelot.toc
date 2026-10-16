@@ -1,0 +1,17 @@
+## Interface: 16001
+## AllowLoadGameType: camelot
+## Title: |cff66b3ffFojji|r|cffff4444Core|r: Games
+## Notes: Chess, Deathroll and the Daily Word, with other FojjiCore players.
+## Author: Fojji
+## Version: 3.5.4
+## Dependencies: FojjiCore, FojjiCore_DungeonJournal
+## Group: FojjiCore
+## IconTexture: Interface\AddOns\FojjiCore\textures\FojjiIcons\F_icon_lightblue.png
+## X-Credits: Chess pieces: the cburnett set by Colin M.L. Burnett (BSD licence).
+## X-Credits-2: Daily Word guess list from the SCOWL / Hunspell en_US dictionary by Kevin Atkinson.
+
+Games.lua
+Deathroll.lua
+Chess.lua
+DailyWordData.lua
+DailyWord.lua
