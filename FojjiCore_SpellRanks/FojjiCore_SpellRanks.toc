@@ -1,0 +1,14 @@
+## Interface: 16001
+## AllowLoadGameType: camelot
+## Title: |cff66b3ffFojji|r|cffff4444Core|r: Spells & Talents
+## Notes: Spell ranks and training, action bar and talent point reminders.
+## Author: Fojji
+## Version: 3.5.4
+## Dependencies: FojjiCore, FojjiCore_DungeonJournal
+## Group: FojjiCore
+## IconTexture: Interface\AddOns\FojjiCore\textures\FojjiIcons\F_icon_lightblue.png
+
+SpellBase.lua
+SpellRanks.lua
+Talents.lua
+TalentPanel.lua

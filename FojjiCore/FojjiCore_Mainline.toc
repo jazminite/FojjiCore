@@ -1,0 +1,30 @@
+## Interface: 120000, 120001, 120005, 120007, 120100, 120105, 120107
+## Title: |cff66b3ffFojji|r|cffff4444Core|r
+## RequiredDeps: ForeverAuras
+## Version: 3.5.4
+## X-Wago-ID: XKq9B5Ky
+## IconTexture: Interface\AddOns\FojjiCore\textures\FojjiIcons\F_icon_lightblue.png
+## SavedVariables: FojjiCoreDB
+
+libs\LibStub\LibStub.lua
+libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
+libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
+libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
+Locale.lua
+Locale\zhCN.lua
+Locale\zhTW.lua
+Locale\koKR.lua
+Locale\ruRU.lua
+
+Forever\Backend.lua
+Media.lua
+Forever\Scripts.lua
+Forever\Spec.lua
+Forever\Sync.lua
+Forever\Timers.lua
+VoicePacks.lua
+OptionsMenu.lua
+UIKit.lua
+Skin.lua
+Options.lua
+Vendor.lua

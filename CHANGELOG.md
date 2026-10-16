@@ -1,6 +1,9 @@
 # Changelog
 
 ## Versions
+## 3.5.4
+- Massive overhaul
+
 ## 2.1.0
 - Add README, CHANGELOG, and gitignore
 - Add translations folder

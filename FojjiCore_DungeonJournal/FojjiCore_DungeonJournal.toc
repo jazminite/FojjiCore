@@ -1,0 +1,51 @@
+## Interface: 16001
+## AllowLoadGameType: camelot
+## Title: |cff66b3ffFojji|r|cffff4444Core|r: Dungeon Journal
+## Notes: Dungeon bosses, loot, maps, quests, routes and the Cozy Sleeping Bag guide.
+## Author: Fojji
+## Version: 3.5.4
+## Dependencies: FojjiCore
+## Group: FojjiCore
+## X-Credits: City of Dalaran boss positions from Naowh Forever: Dungeon Journal, by Naowh.
+## X-Credits-2: Minimap herb & ore icons inspired by NodeSight's discovery, by Krelock (its herb and ore icon list helped fill ours).
+## X-Credits-3: Dungeon maps drawn by Santiago Reyes (@SR433_20 on X).
+## IconTexture: Interface\AddOns\FojjiCore\textures\FojjiIcons\F_icon_lightblue.png
+
+Init.lua
+Locale.lua
+Codec.lua
+Data\Charts.lua
+Data\Dungeons.lua
+Data\Entrances.lua
+Data\Themes.lua
+Data\Quests.lua
+Data\Chains.lua
+Data\Items.lua
+Data\Givers.lua
+Data\Guides.lua
+Store.lua
+Lookup.lua
+Comm.lua
+Quests.lua
+Party.lua
+Pins.lua
+Beam.lua
+Way.lua
+Routes.lua
+Runs.lua
+QuestTrack.lua
+Kit.lua
+Chart.lua
+QuestList.lua
+PartyGrid.lua
+BossList.lua
+RouteList.lua
+Journal.lua
+WorldLayer.lua
+Waypoints.lua
+Nodes.lua
+InstanceMap.lua
+Dock.lua
+Pocket.lua
+Guide.lua
+Extras.lua

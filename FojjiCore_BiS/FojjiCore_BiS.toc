@@ -1,0 +1,16 @@
+## Interface: 16001
+## AllowLoadGameType: camelot
+## Title: |cff66b3ffFojji|r|cffff4444Core|r: BiS Manager
+## Notes: Plan the gear you want for every slot, and see where it comes from.
+## Author: Fojji
+## Version: 3.5.4
+## Dependencies: FojjiCore, FojjiCore_DungeonJournal
+## Group: FojjiCore
+## IconTexture: Interface\AddOns\FojjiCore\textures\FojjiIcons\F_icon_lightblue.png
+
+Gear.lua
+GearStats.lua
+GearPreRaid.lua
+GearSuggest.lua
+Stage.lua
+Board.lua

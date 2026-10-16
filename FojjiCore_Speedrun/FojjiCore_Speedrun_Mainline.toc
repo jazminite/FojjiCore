@@ -1,0 +1,14 @@
+## Interface: 120000, 120001, 120005, 120007, 120100, 120105, 120107
+## Title: |cff66b3ffFojji|r|cffff4444Core|r: Speedrun Timer
+## Notes: Dungeon splits, best times and run history.
+## Author: Fojji
+## Version: 3.5.4
+## Dependencies: FojjiCore
+## Group: FojjiCore
+## IconTexture: Interface\AddOns\FojjiCore\textures\FojjiIcons\F_icon_lightblue.png
+
+SpeedrunData.lua
+SpeedrunSettings.lua
+Speedrun.lua
+SpeedrunUI.lua
+SpeedrunOptions.lua

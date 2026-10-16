@@ -1,1 +1,5 @@
-env
+.env
+FojjiCore/libs/*
+**/desktop.ini
+.DS_Store
+.vscode

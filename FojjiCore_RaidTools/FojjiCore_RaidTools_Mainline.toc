@@ -1,0 +1,18 @@
+## Interface: 120000, 120001, 120005, 120007, 120100, 120105, 120107
+## Title: |cff66b3ffFojji|r|cffff4444Core|r: Raid Tools
+## Notes: Raid Packs, Timeline Recorder, Raid Data assignments and Raid Management.
+## Author: Fojji
+## Version: 3.5.4
+## Dependencies: FojjiCore
+## Group: FojjiCore
+## IconTexture: Interface\AddOns\FojjiCore\textures\FojjiIcons\F_icon_lightblue.png
+
+RaidPacks.lua
+RaidData.lua
+RaidPacksUI.lua
+GroupSetups.lua
+RaidLead.lua
+Assignments.lua
+AssignmentsUI.lua
+CDAssign.lua
+CDAssignUI.lua
